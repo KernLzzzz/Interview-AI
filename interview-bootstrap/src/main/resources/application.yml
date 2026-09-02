@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: interview-ai
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB      # 单个文件最大 50MB（超限直接 413）
+      max-request-size: 100MB  # 单次请求（多文件）最大 100MB
+
+
+app:
+  name: 多模态智能模拟面试评测平台
+  version: 1.0.0
+  description: 基于AI的面试模拟与评测系统
+  author: 讯飞
+  file:
+    allowed-types:
+      - application/pdf
+      - application/msword
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - image/jpeg
+      - image/png
+      - video/mp4
+    max-size: 52428800   # 50MB
