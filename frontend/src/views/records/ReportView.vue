@@ -84,12 +84,55 @@
 
         <!-- AI 评测反馈 -->
         <el-card class="section-card">
-          <template #header><span class="section-title">🤖 AI 评测反馈</span></template>
+          <template #header>
+            <div class="section-heading"><span class="section-title">🤖 AI 评测反馈</span><el-tag v-if="parsedFeedback" size="small" effect="plain" :type="parsedFeedback.engine === 'remote-ai' ? 'success' : 'info'">{{ engineLabel }}</el-tag></div>
+          </template>
           <div class="ai-feedback">
             <el-icon size="20" color="#909399"><ChatDotRound /></el-icon>
             <p>{{ parsedFeedback ? parsedFeedback.summary : (record.aiFeedback || (evaluating ? '评测生成中...' : '（暂无反馈）')) }}</p>
           </div>
         </el-card>
+
+        <template v-if="parsedFeedback">
+          <el-card v-if="parsedFeedback.dimensions" class="section-card">
+            <template #header><span class="section-title">📊 能力维度</span></template>
+            <div class="dimension-grid">
+              <div v-for="(value, key) in parsedFeedback.dimensions" :key="key" class="dimension-item">
+                <div><span>{{ dimensionLabel(key) }}</span><b>{{ value }}</b></div>
+                <el-progress :percentage="value" :show-text="false" :stroke-width="8" :color="dimensionColor(value)" />
+              </div>
+            </div>
+          </el-card>
+
+          <el-card v-if="parsedFeedback.candidateProfile" class="section-card">
+            <template #header><span class="section-title">🧭 候选人画像</span></template>
+            <div class="profile-summary">
+              <div><small>能力阶段</small><strong>{{ parsedFeedback.candidateProfile.seniorityEstimate || '证据不足' }}</strong></div>
+              <div><small>岗位匹配</small><p>{{ parsedFeedback.candidateProfile.jobFit || '需要结合更多面试证据判断' }}</p></div>
+              <div><small>工作方式</small><p>{{ parsedFeedback.candidateProfile.workStyle || '需要结合更多面试证据判断' }}</p></div>
+            </div>
+            <div class="profile-columns">
+              <div class="profile-column strengths"><h3>优势证据</h3><ul><li v-for="item in parsedFeedback.candidateProfile.strengths || []" :key="item">{{ item }}</li></ul></div>
+              <div class="profile-column weaknesses"><h3>待提升项</h3><ul><li v-for="item in parsedFeedback.candidateProfile.weaknesses || []" :key="item">{{ item }}</li></ul></div>
+            </div>
+          </el-card>
+
+          <el-card v-if="parsedFeedback.recommendations?.length" class="section-card">
+            <template #header><span class="section-title">🎯 个性化行动建议</span></template>
+            <div class="recommendation-list">
+              <div v-for="(item, index) in parsedFeedback.recommendations" :key="`${item.title}-${index}`" class="recommendation-item">
+                <span :class="`priority-${item.priority}`">{{ priorityLabel(item.priority) }}</span>
+                <div><strong>{{ item.title }}</strong><p>{{ item.action }}</p></div>
+              </div>
+            </div>
+          </el-card>
+
+          <el-card v-if="parsedFeedback.riskSignals?.length" class="section-card">
+            <template #header><span class="section-title">🔎 需要进一步核实</span></template>
+            <div class="risk-list"><span v-for="risk in parsedFeedback.riskSignals" :key="risk">{{ risk }}</span></div>
+            <p class="assessment-note">以上判断仅基于本次模拟面试中的可观察回答，不应单独作为录用决定。</p>
+          </el-card>
+        </template>
 
         <!-- 面试官评语（人工评分后出现） -->
         <el-card v-if="parsedFeedback?.interviewerComment" class="section-card">
@@ -119,7 +162,11 @@
                 <el-tag size="small" :type="scoreTag(item.feedback.score)">
                   {{ item.feedback.score }}/10
                 </el-tag>
-                <p>{{ item.feedback.feedback }}</p>
+                <div class="qa-feedback-copy">
+                  <p>{{ item.feedback.feedback }}</p>
+                  <small v-if="item.feedback.evidence"><b>判断依据：</b>{{ item.feedback.evidence }}</small>
+                  <small v-if="item.feedback.suggestion"><b>改进建议：</b>{{ item.feedback.suggestion }}</small>
+                </div>
               </div>
             </div>
           </div>
@@ -186,8 +233,20 @@ const scoreLevel = computed(() => {
 })
 
 // 解析逐题点评（新记录 aiFeedback 是 JSON；旧记录是纯文本 → 回退 null）
-interface FeedbackItem { questionId: number; score: number; feedback: string }
-interface ParsedFeedback { summary: string; items: FeedbackItem[]; interviewerComment?: string }
+interface FeedbackItem { questionId: number; score: number; feedback: string; evidence?: string; suggestion?: string }
+interface CandidateProfile { strengths?: string[]; weaknesses?: string[]; seniorityEstimate?: string; workStyle?: string; jobFit?: string }
+interface Recommendation { priority: 'high' | 'medium' | 'low'; title: string; action: string }
+interface ParsedFeedback {
+  summary: string
+  engine?: 'remote-ai' | 'local-explainable'
+  model?: string
+  items: FeedbackItem[]
+  dimensions?: Record<string, number>
+  candidateProfile?: CandidateProfile
+  recommendations?: Recommendation[]
+  riskSignals?: string[]
+  interviewerComment?: string
+}
 
 const parsedFeedback = computed<ParsedFeedback | null>(() => {
   const r = record.value
@@ -202,6 +261,15 @@ const parsedFeedback = computed<ParsedFeedback | null>(() => {
     return null
   }
 })
+const engineLabel = computed(() => parsedFeedback.value?.engine === 'remote-ai'
+  ? `真实 AI · ${parsedFeedback.value.model || '模型评测'}` : '离线可解释评测')
+const dimensionNames: Record<string, string> = {
+  knowledge: '专业知识', relevance: '回答相关性', structure: '表达结构', expression: '语言表达',
+  problemSolving: '问题解决', communication: '沟通能力', growthPotential: '成长潜力'
+}
+function dimensionLabel(key: string) { return dimensionNames[key] ?? key }
+function dimensionColor(value: number) { return value >= 80 ? '#23866d' : value >= 60 ? '#167487' : '#d08a3b' }
+function priorityLabel(value: string) { return value === 'high' ? '优先' : value === 'medium' ? '其次' : '长期' }
 
 // 解析 answerData 展示题目与作答，并把逐题点评合并进每题
 const qaList = computed(() => {
@@ -368,6 +436,18 @@ function exportReport() {
     color: #303133;
   }
 }
+.section-heading { display: flex; align-items: center; justify-content: space-between; }
+
+.dimension-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 28px; }
+.dimension-item > div { display: flex; justify-content: space-between; margin-bottom: 7px; color: #536978; font-size: 13px; }
+.dimension-item b { color: var(--ink-950); font-family: ui-monospace, monospace; }
+.profile-summary { display: grid; grid-template-columns: .65fr 1.2fr 1.2fr; gap: 1px; background: #dce5e9; border: 1px solid #dce5e9; }
+.profile-summary > div { display: flex; flex-direction: column; gap: 7px; padding: 15px; background: #f8fafb; }
+.profile-summary small { color: #81929d; font-size: 10px; letter-spacing: .08em; }
+.profile-summary strong { color: var(--signal); font-size: 16px; }.profile-summary p { margin: 0; color: #445e6d; font-size: 13px; line-height: 1.6; }
+.profile-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }.profile-column { padding: 16px; border-left: 3px solid #2c9178; background: #f4faf8; }.profile-column.weaknesses { border-color: #d18a3d; background: #fff8ef; }.profile-column h3 { margin: 0 0 10px; font-size: 13px; }.profile-column ul { margin: 0; padding-left: 18px; color: #536978; font-size: 13px; line-height: 1.8; }
+.recommendation-list { display: flex; flex-direction: column; }.recommendation-item { display: grid; grid-template-columns: 54px 1fr; gap: 14px; padding: 15px 0; border-bottom: 1px solid #e8edef; }.recommendation-item:last-child { border-bottom: 0; }.recommendation-item > span { align-self: start; padding: 4px 7px; text-align: center; border-radius: 2px; font-size: 10px; }.priority-high { color: #a23f3f; background: #faeaea; }.priority-medium { color: #98631f; background: #fff1dc; }.priority-low { color: #397066; background: #e9f5f2; }.recommendation-item strong { color: #263f51; font-size: 14px; }.recommendation-item p { margin: 5px 0 0; color: #657986; font-size: 13px; line-height: 1.7; }
+.risk-list { display: flex; flex-wrap: wrap; gap: 8px; }.risk-list span { padding: 7px 10px; color: #805d2d; background: #fff5e7; border: 1px solid #f0dab9; border-radius: 3px; font-size: 12px; }.assessment-note { margin: 14px 0 0; color: #9aa7af; font-size: 11px; }
 
 .ai-feedback {
   display: flex;
@@ -419,7 +499,9 @@ function exportReport() {
     background: #f0f7ff;
     border-top: 1px dashed #d9ecff;
     .qa-fb-label { font-size: 12px; color: #409EFF; font-weight: 600; white-space: nowrap; }
-    p { margin: 0; font-size: 13px; color: #303133; line-height: 1.7; flex: 1; }
+    .qa-feedback-copy { flex: 1; }
+    p { margin: 0; font-size: 13px; color: #303133; line-height: 1.7; }
+    small { display: block; margin-top: 5px; color: #6d8290; line-height: 1.6; }
   }
 }
 
@@ -438,4 +520,5 @@ function exportReport() {
   .page-container { max-width: 100%; padding: 0; }
   .report-body { box-shadow: none; }
 }
+@media (max-width: 680px) { .dimension-grid,.profile-columns,.profile-summary { grid-template-columns: 1fr; } }
 </style>

@@ -20,6 +20,14 @@ interview:
     max-retries: 3
     retry-delay: PT1M
     callback-token: ${AI_CALLBACK_TOKEN:local-development-token}
+    ai:
+      enabled: ${AI_EVALUATION_ENABLED:false}
+      base-url: ${AI_BASE_URL:https://api.openai.com/v1}
+      endpoint: ${AI_ENDPOINT:/chat/completions}
+      model: ${AI_MODEL:}
+      api-key: ${AI_API_KEY:}
+      connect-timeout-seconds: 10
+      read-timeout-seconds: 90
 
 
 app:

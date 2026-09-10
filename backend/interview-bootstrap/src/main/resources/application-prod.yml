@@ -28,6 +28,12 @@ minio:
 interview:
   evaluation:
     callback-token: ${AI_CALLBACK_TOKEN}
+    ai:
+      enabled: ${AI_EVALUATION_ENABLED:false}
+      base-url: ${AI_BASE_URL:https://api.openai.com/v1}
+      endpoint: ${AI_ENDPOINT:/chat/completions}
+      model: ${AI_MODEL:}
+      api-key: ${AI_API_KEY:}
 
 logging:
   level:

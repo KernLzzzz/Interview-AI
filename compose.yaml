@@ -57,6 +57,11 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       AI_CALLBACK_TOKEN: ${AI_CALLBACK_TOKEN}
+      AI_EVALUATION_ENABLED: ${AI_EVALUATION_ENABLED:-false}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_ENDPOINT: ${AI_ENDPOINT:-/chat/completions}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
     ports:
       - "8080:8080"
     depends_on:

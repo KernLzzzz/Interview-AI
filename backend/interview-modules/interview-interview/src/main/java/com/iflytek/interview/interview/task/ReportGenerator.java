@@ -3,6 +3,7 @@ package com.iflytek.interview.interview.task;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iflytek.interview.interview.dto.InterviewAnswer;
 import com.iflytek.interview.interview.entity.InterviewRecord;
 import com.iflytek.interview.interview.mapper.InterviewRecordMapper;
@@ -35,6 +36,7 @@ public class ReportGenerator {
     private final InterviewRecordMapper interviewRecordMapper;
     private final QuestionMapper questionMapper;
     private final ObjectMapper objectMapper;
+    private final RemoteAiEvaluationGateway remoteAiEvaluationGateway;
 
     /** 同步执行一次评测；异步边界由 EvaluationWorker 统一控制。 */
     public String generate(Long recordId) {
@@ -48,6 +50,11 @@ public class ReportGenerator {
 
         List<InterviewAnswer> answers = parseAnswers(record);
         Map<Long, Question> questions = loadQuestions(answers);
+        if (remoteAiEvaluationGateway.isEnabled()) {
+            JsonNode remoteReport = remoteAiEvaluationGateway.evaluate(record, answers, questions);
+            int remoteScore = Math.max(0, Math.min(100, remoteReport.path("score").asInt()));
+            return persist(record, remoteReport.toString(), remoteScore, "remote-ai");
+        }
         List<Map<String, Object>> items = new ArrayList<>();
         for (InterviewAnswer item : answers) {
             Question question = questions.get(item.id());
@@ -63,22 +70,21 @@ public class ReportGenerator {
         long answered = items.stream().filter(item -> (int) item.get("score") > 0).count();
 
         Map<String, Object> feedback = new LinkedHashMap<>();
-        feedback.put("version", "1.0");
+        feedback.put("version", "2.0");
+        feedback.put("engine", "local-explainable");
         feedback.put("summary", buildSummary(items, overall, answers.size(), answered));
         feedback.put("items", items);
         feedback.put("dimensions", buildDimensions(items));
+        feedback.put("candidateProfile", buildCandidateProfile(overall, answered, answers.size()));
+        feedback.put("riskSignals", buildRiskSignals(items, answered, answers.size()));
+        feedback.put("recommendations", buildRecommendations(overall));
         feedback.put("modality", Map.of(
                 "mode", record.getInterviewMode() == null ? "text" : record.getInterviewMode(),
                 "mediaAttached", record.getMediaFileId() != null,
                 "mediaDuration", record.getMediaDuration() == null ? 0 : record.getMediaDuration()));
         String feedbackJson = writeJson(feedback);
 
-        record.setScore(BigDecimal.valueOf(overall));
-        record.setAiFeedback(feedbackJson);
-        interviewRecordMapper.updateById(record);
-        log.info("AI 评测完成: recordId={}, score={}, answered={}/{}",
-                recordId, overall, answered, answers.size());
-        return feedbackJson;
+        return persist(record, feedbackJson, overall, "local-explainable");
     }
 
     private List<InterviewAnswer> parseAnswers(InterviewRecord record) {
@@ -116,6 +122,8 @@ public class ReportGenerator {
             result.put("score", 0);
             result.put("matchedKeywords", List.of());
             result.put("feedback", "未作答，建议先给出结论，再说明依据与实践例子。");
+            result.put("evidence", "本题没有可分析的回答内容");
+            result.put("suggestion", "先用一句话给出结论，再补充依据和实际案例");
             return result;
         }
 
@@ -143,6 +151,8 @@ public class ReportGenerator {
         result.put("score", score);
         result.put("matchedKeywords", matched);
         result.put("feedback", feedback);
+        result.put("evidence", answer.length() > 80 ? "回答包含一定的解释与细节" : "回答信息量较少");
+        result.put("suggestion", missed.isEmpty() ? "补充可量化的项目结果" : "优先补充遗漏的核心知识点并结合项目案例");
         return result;
     }
 
@@ -153,7 +163,54 @@ public class ReportGenerator {
         dimensions.put("knowledge", average);
         dimensions.put("structure", Math.min(100, average + 4));
         dimensions.put("expression", Math.max(0, average - 3));
+        dimensions.put("relevance", average);
+        dimensions.put("problemSolving", Math.max(0, average - 5));
+        dimensions.put("communication", Math.max(0, average - 2));
+        dimensions.put("growthPotential", Math.min(100, average + 6));
         return dimensions;
+    }
+
+    private Map<String, Object> buildCandidateProfile(int overall, long answered, int total) {
+        Map<String, Object> profile = new LinkedHashMap<>();
+        profile.put("strengths", overall >= 70
+                ? List.of("能够覆盖多数问题的核心要点", "具备一定的结构化表达意识")
+                : List.of("愿意对问题给出明确回应"));
+        profile.put("weaknesses", overall >= 70
+                ? List.of("案例中的数据结果和个人贡献仍可更明确")
+                : List.of("回答深度和关键知识点覆盖不足", "需要用具体案例证明能力"));
+        profile.put("seniorityEstimate", overall >= 85 ? "高级能力表现" : overall >= 65 ? "中级能力表现" : "基础能力表现");
+        profile.put("workStyle", overall >= 70 ? "偏结构化分析，建议加强结果量化" : "当前证据有限，需要在完整案例中进一步观察");
+        profile.put("jobFit", String.format("基于本次模拟面试完成度 %d/%d，当前岗位匹配度为%s。",
+                answered, total, overall >= 80 ? "较高" : overall >= 60 ? "中等" : "待提升"));
+        return profile;
+    }
+
+    private List<String> buildRiskSignals(List<Map<String, Object>> items, long answered, int total) {
+        List<String> risks = new ArrayList<>();
+        if (answered < total) risks.add("存在未作答题目，能力证据不完整");
+        long shortAnswers = items.stream().filter(item -> (int) item.get("score") <= 2).count();
+        if (shortAnswers > 0) risks.add("部分回答过短，难以判断真实实践深度");
+        if (risks.isEmpty()) risks.add("未发现明显风险，但仍需结合项目经历与人工复核");
+        return risks;
+    }
+
+    private List<Map<String, String>> buildRecommendations(int overall) {
+        List<Map<String, String>> recommendations = new ArrayList<>();
+        recommendations.add(Map.of("priority", "high", "title", "用 STAR 结构补全案例",
+                "action", "为两个核心项目分别整理情境、任务、行动和可量化结果，并控制在 2 分钟内表达。"));
+        recommendations.add(Map.of("priority", overall < 70 ? "high" : "medium", "title", "补齐岗位知识证据",
+                "action", "根据逐题遗漏关键词建立复习清单，每个知识点准备原理、取舍和落地案例。"));
+        recommendations.add(Map.of("priority", "medium", "title", "进行限时复述训练",
+                "action", "每天录制 3 道题，回听并删掉重复表述，让结论出现在回答前 20 秒。"));
+        return recommendations;
+    }
+
+    private String persist(InterviewRecord record, String feedbackJson, int score, String engine) {
+        record.setScore(BigDecimal.valueOf(score));
+        record.setAiFeedback(feedbackJson);
+        interviewRecordMapper.updateById(record);
+        log.info("AI 评测完成: recordId={}, engine={}, score={}", record.getId(), engine, score);
+        return feedbackJson;
     }
 
     private String buildSummary(List<Map<String, Object>> items, int overall, int total, long answered) {

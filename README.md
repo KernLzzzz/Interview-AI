@@ -9,7 +9,8 @@
 - **媒体安全归档**：浏览器通过 `MediaRecorder` 采集 WebM/Ogg，结束时上传 MinIO；面试记录只绑定通过用户归属与业务模块校验的文件 ID，并保存媒体时长。
 - **题库缓存优化**：基于 Redis Hash 实现热点题库读取、写后失效、TTL 更新与启动/定时预热；随机抽题从缓存候选集完成，避免高频执行 `ORDER BY RAND()`。
 - **答案安全**：候选人 VO 与管理端 VO 分离，公开接口不包含 `expectedAnswer`、`keywords`；抽题快照由服务端构建并以 JSON 落库，提交答案会按快照题号重新校验和组装。
-- **AI 评测异步化**：`@Async` + 独立线程池将评测从提交接口解耦；支持任务提交、状态查询、结果回调和最多 3 次定时重试。
+- **真实 AI 评测链路**：支持 OpenAI-compatible Chat Completions 模型；输出总分、六项能力维度、候选人画像、岗位匹配、风险信号、逐题证据和行动建议。API Key 仅从服务端环境变量读取。
+- **AI 评测异步化**：`@Async` + 独立线程池将模型评测从提交接口解耦；支持任务提交、状态查询、结果回调和最多 3 次定时重试。
 - **任务不丢失**：任务先持久化再投递，事务提交后启动工作线程；线程池使用 `CallerRunsPolicy`，避免队列饱和时静默丢弃；同一任务原地重试，保留完整状态轨迹。
 - **认证与权限**：Spring Security + JWT + Redis 会话 + RBAC，并对候选人的面试记录实施行级权限校验。
 - **文件能力**：MinIO 保存简历、头像、面试录音录像与附件，包含类型、大小、文件名及模块路径校验。
@@ -85,9 +86,19 @@ GET  /api/evaluations/records/{recordId}/latest
 POST /api/evaluations/callback
 ```
 
-回调必须携带 `X-Evaluation-Callback-Token`。本地评测内核会生成 `summary`、`items`、`dimensions` 三部分 JSON，后续替换成远程大模型时可保持接口和前端报告结构不变。
+回调必须携带 `X-Evaluation-Callback-Token`。统一报告 JSON 包含 `score`、`summary`、`dimensions`、`candidateProfile`、`riskSignals`、`recommendations`、`items` 和 `modality`。模型回答会先经过 JSON 结构校验再落库；模型超时、服务异常或结构不合格都会进入现有重试流程。
 
-评测结果还包含 `modality` 元数据。内置离线评测器以文本/浏览器转写为评分输入；录音录像已通过文件 ID 纳入任务数据模型，可在不改变提交与状态接口的前提下替换为支持音视频输入的远程多模态模型。
+默认不需要 API Key，系统使用标记为 `local-explainable` 的离线可解释评测器，仍会生成完整报告，便于本地部署和功能验收。启用真实模型时配置：
+
+```env
+AI_EVALUATION_ENABLED=true
+AI_BASE_URL=https://api.openai.com/v1
+AI_ENDPOINT=/chat/completions
+AI_MODEL=your-model-name
+AI_API_KEY=your-server-side-key
+```
+
+任何兼容 Chat Completions 协议的服务都可以通过 `AI_BASE_URL`、`AI_ENDPOINT` 和 `AI_MODEL` 接入。评测提示词明确要求模型仅依据本次回答中的可观察证据分析，不推断敏感属性，也不直接作出录用决定。录音录像通过文件 ID 纳入数据模型；当前通用兼容层评测转写文本，后续可在网关层扩展供应商专有的音视频输入格式。
 
 ## 快速启动
 
@@ -162,6 +173,10 @@ npm run build
 | `interview.cache.question.warmup-limit` | `20` | 自动预热场景数 |
 | `interview.evaluation.max-retries` | `3` | 失败任务最大重试次数 |
 | `interview.evaluation.retry-delay` | `PT1M` | 单次失败后的最小等待时间 |
+| `interview.evaluation.ai.enabled` | `false` | 是否调用真实远程模型 |
+| `interview.evaluation.ai.base-url` | OpenAI API 地址 | OpenAI-compatible 服务地址 |
+| `interview.evaluation.ai.model` | 空 | 评测模型名称，启用远程评测时必填 |
+| `AI_API_KEY` | 空 | 服务端模型密钥；禁止写入前端或提交仓库 |
 | `AI_CALLBACK_TOKEN` | 无安全默认值 | 外部评测回调令牌，生产环境必须配置 |
 
 生产环境通过 `application-prod.yml` 读取数据库、Redis、JWT 与 MinIO 环境变量。不要提交真实密码、访问密钥或压测 JWT。

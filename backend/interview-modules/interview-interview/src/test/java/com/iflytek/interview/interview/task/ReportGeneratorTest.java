@@ -30,11 +30,13 @@ class ReportGeneratorTest {
         question.setKeywords("Redis,Hash,TTL");
         when(recordMapper.selectById(9L)).thenReturn(record);
         when(questionMapper.selectBatchIds(anyList())).thenReturn(List.of(question));
+        RemoteAiEvaluationGateway gateway = mock(RemoteAiEvaluationGateway.class);
+        when(gateway.isEnabled()).thenReturn(false);
 
-        ReportGenerator generator = new ReportGenerator(recordMapper, questionMapper, new ObjectMapper());
+        ReportGenerator generator = new ReportGenerator(recordMapper, questionMapper, new ObjectMapper(), gateway);
         String report = generator.generate(9L);
 
-        assertThat(report).contains("summary", "dimensions", "matchedKeywords");
+        assertThat(report).contains("summary", "dimensions", "candidateProfile", "recommendations", "matchedKeywords");
         ArgumentCaptor<InterviewRecord> captor = ArgumentCaptor.forClass(InterviewRecord.class);
         verify(recordMapper).updateById(captor.capture());
         assertThat(captor.getValue().getScore()).isNotNull();
