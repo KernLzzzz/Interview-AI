@@ -42,7 +42,7 @@ jwt:
 
 # MinIO 配置（顶层，供 MinioProperties 读取；此前误缩进在 jwt 下导致启动报 endpoint must not be null）
 minio:
-  endpoint: http://localhost:9000
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin}
-  bucket: interviewai
+  bucket: ${MINIO_BUCKET:interviewai}

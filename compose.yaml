@@ -44,6 +44,13 @@ services:
       - "${LIGANG_MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
+    healthcheck:
+      # 官方镜像自带 mc；backend 必须等 MinIO 真正可服务再启动，
+      # 否则 @PostConstruct 建桶会失败，错误会延后到用户提交时才暴露
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   backend:
     build: ./backend
@@ -70,7 +77,7 @@ services:
       redis:
         condition: service_healthy
       minio:
-        condition: service_started
+        condition: service_healthy
 
   frontend:
     build: ./frontend
