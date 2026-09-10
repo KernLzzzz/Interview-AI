@@ -51,3 +51,8 @@ app:
       - audio/mpeg
       - audio/mp4
     max-size: 209715200
+    # 孤儿媒体回收：超过该小时数仍未被任何面试记录引用的录制文件会被删除。
+    # 正常「上传→提交」是秒级流程，取 24 小时足够宽容，不会误删用户中途离开后的录制。
+    orphan-ttl-hours: 24
+    orphan-clean-batch: 200
+    orphan-clean-cron: "0 15 * * * ?"

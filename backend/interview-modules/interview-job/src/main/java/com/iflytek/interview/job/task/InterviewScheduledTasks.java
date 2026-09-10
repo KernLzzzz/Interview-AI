@@ -1,11 +1,14 @@
 package com.iflytek.interview.job.task;
 
+import com.iflytek.interview.file.service.OrphanMediaCleaner;
 import com.iflytek.interview.interview.service.EvaluationTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
@@ -18,6 +21,17 @@ public class InterviewScheduledTasks {
 
     @Autowired
     private EvaluationTaskService evaluationTaskService;
+
+    @Autowired
+    private OrphanMediaCleaner orphanMediaCleaner;
+
+    /** 孤儿媒体保留时长：超过该小时数仍未被任何面试记录引用，才判定为可回收 */
+    @Value("${app.file.orphan-ttl-hours:24}")
+    private int orphanTtlHours;
+
+    /** 单轮最多清理条数，避免一次删除过多拖长任务 */
+    @Value("${app.file.orphan-clean-batch:200}")
+    private int orphanCleanBatch;
 
     /**
      * 每天早上 8 点：发送面试提醒（本讲先打日志模拟，短信/邮件对接后续）
@@ -60,6 +74,20 @@ public class InterviewScheduledTasks {
         int retried = evaluationTaskService.retryDueTasks();
         if (retried > 0) {
             log.info("【定时】已重新投递 {} 个 AI 评测任务", retried);
+        }
+    }
+
+    /**
+     * 每小时第 15 分：回收孤儿面试媒体。
+     * 上传与落库是两步操作，中间失败、放弃或被取消，都会在对象存储里留下无人引用的录制文件，
+     * 且这些文件既不会被回看也不会被评测。这里按 TTL 兜底回收，阻止存储持续泄漏。
+     * cron、保留时长、单轮上限均可在配置中覆盖。
+     */
+    @Scheduled(cron = "${app.file.orphan-clean-cron:0 15 * * * ?}")
+    public void cleanOrphanMediaFiles() {
+        int cleaned = orphanMediaCleaner.clean(Duration.ofHours(orphanTtlHours), orphanCleanBatch);
+        if (cleaned > 0) {
+            log.info("【定时】已清理 {} 个孤儿面试媒体文件", cleaned);
         }
     }
 }
