@@ -271,11 +271,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, defineComponent, h, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
+import { init, use, type ECharts } from 'echarts/core'
+import { BarChart, LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useAuthStore } from '@/stores/auth'
 import type { FormInstance } from 'element-plus'
+
+use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 // ── 手写 CountUp 组件（不依赖外部库） ──────────────────────────────
 const CountUp = defineComponent({
@@ -335,8 +340,8 @@ const statCards = computed(() => {
 // ── 趋势图（ECharts，两张单系列图） ───────────────────────────────
 const chartBarEl = ref<HTMLElement>()
 const chartLineEl = ref<HTMLElement>()
-let chartBar: echarts.ECharts | null = null
-let chartLine: echarts.ECharts | null = null
+let chartBar: ECharts | null = null
+let chartLine: ECharts | null = null
 
 const AXIS_INK = '#898781'
 const GRID_LINE = '#e1e0d9'
@@ -350,7 +355,7 @@ function renderCharts() {
   const counts = trend.map(t => t.count)
   const scores = trend.map(t => t.avgScore)
 
-  if (!chartBar) chartBar = echarts.init(chartBarEl.value)
+  if (!chartBar) chartBar = init(chartBarEl.value)
   chartBar.setOption({
     grid: { left: 32, right: 14, top: 16, bottom: 24 },
     tooltip: { trigger: 'axis' },
@@ -369,7 +374,7 @@ function renderCharts() {
     }]
   })
 
-  if (!chartLine) chartLine = echarts.init(chartLineEl.value)
+  if (!chartLine) chartLine = init(chartLineEl.value)
   chartLine.setOption({
     grid: { left: 32, right: 14, top: 16, bottom: 24 },
     tooltip: { trigger: 'axis' },

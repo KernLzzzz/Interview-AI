@@ -7,6 +7,9 @@
 -- 建议在全新实例执行；已有数据库请使用对应 migration 脚本
 -- ==========================================================
 
+-- 显式声明脚本编码，避免 Windows/Docker 首次导入中文种子数据时发生双重转码
+SET NAMES utf8mb4;
+
 -- ========== 一、创建数据库 ==========
 CREATE DATABASE IF NOT EXISTS `interview_ai`
   DEFAULT CHARACTER SET utf8mb4
@@ -125,12 +128,12 @@ CREATE TABLE `task_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='异步任务日志表';
 
 -- ========== 八、测试数据 ==========
--- 测试账号（密码统一为 123456，BCrypt 加密存储；角色关联见 rbac.sql 第八节）
+-- 演示账号（使用符合登录校验的独立密码，BCrypt 加密存储；角色关联见 rbac.sql 第八节）
 INSERT INTO `sys_user` (`username`, `password`, `email`, `nickname`, `role`)
 VALUES
-('admin',       '$2a$10$E/IWSnPMvVf0VVCOOHa9EuXDck26k3Z2oGwTF3cYFk8SV6TnPLPY.', 'admin@example.com',       '管理员',   'admin'),
-('test01',      '$2a$10$E/IWSnPMvVf0VVCOOHa9EuXDck26k3Z2oGwTF3cYFk8SV6TnPLPY.', 'test01@example.com',      '测试用户1', 'candidate'),
-('interviewer', '$2a$10$E/IWSnPMvVf0VVCOOHa9EuXDck26k3Z2oGwTF3cYFk8SV6TnPLPY.', 'interviewer@example.com', '面试官',   'interviewer');
+('admin',       '$2b$10$XwsudKaRux7vMdLrc8voluXxvNbxpWVqT/gpZSxUUuzB90rETeGb2', 'admin@example.com',       '管理员',   'admin'),
+('test01',      '$2b$10$cAkaaCsj0MlZ767CHExJk.SG039KvMpVnPy/V/h.mH3Iq5exmz0By', 'test01@example.com',      '测试用户1', 'candidate'),
+('interviewer', '$2b$10$0sXr62Po9T628RvZPJ5DXOvyfUGs.yqA.qbSairmYAuJpiI9Ghhhu', 'interviewer@example.com', '面试官',   'interviewer');
 
 -- 面试场景
 INSERT INTO `interview_scenario` (`name`, `description`, `tech_field`, `difficulty`, `question_count`)

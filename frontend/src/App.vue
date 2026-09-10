@@ -57,7 +57,7 @@
           <span class="page-title">{{ currentTitle }}</span>
         </div>
         <div class="header-right">
-          <div class="system-state"><i></i><span>评测服务在线</span></div>
+          <div class="system-state"><i></i><span>结构化评测工作台</span></div>
           <span class="time">{{ currentTime }}</span>
         </div>
       </el-header>

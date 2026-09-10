@@ -120,6 +120,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
+若本机已有服务占用默认端口，可通过 `LIGANG_MYSQL_PORT`、`LIGANG_REDIS_PORT`、`LIGANG_MINIO_PORT`、`LIGANG_MINIO_CONSOLE_PORT`、`LIGANG_BACKEND_PORT`、`LIGANG_FRONTEND_PORT` 覆盖宿主机端口；容器间通信端口无需修改。
+
 - Web：<http://localhost:5173>
 - API：<http://localhost:8080>
 - API 文档：<http://localhost:8080/doc.html>
@@ -148,13 +150,13 @@ Windows 可将 `./mvnw` 替换为 `mvnw.cmd`。Vite 会把 `/api` 代理到 `htt
 
 ### 初始账号
 
-初始化脚本中的三个账号密码均为 `123456`：
+初始化脚本提供三个分角色演示账号：
 
-| 用户名 | 角色 |
-| --- | --- |
-| `admin` | 管理员 |
-| `interviewer` | 面试官 |
-| `test01` | 候选人 |
+| 用户名 | 密码 | 角色 |
+| --- | --- | --- |
+| `admin` | `admin123` | 管理员 |
+| `interviewer` | `interview123` | 面试官 |
+| `test01` | `candidate123` | 候选人 |
 
 公开部署前必须修改初始密码以及 `.env` 中的全部密钥。
 

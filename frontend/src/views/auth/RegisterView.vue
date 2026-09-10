@@ -1,11 +1,11 @@
 <template>
   <div class="auth-page">
     <div class="auth-card">
-      <!-- Logo区域 -->
       <div class="auth-logo">
-        <el-icon size="36" color="#409EFF"><Monitor /></el-icon>
-        <h1>面试平台管理系统</h1>
-        <p>创建新账号</p>
+        <span class="auth-mark">IA</span>
+        <span class="eyebrow">NEW CANDIDATE</span>
+        <h1>创建候选人档案</h1>
+        <p>完成注册后，直接建立你的第一条面试评测基线</p>
       </div>
 
       <!-- 注册表单 -->
@@ -187,7 +187,9 @@ async function handleRegister() {
 <style lang="scss" scoped>
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a2038 0%, #2d3561 50%, #1a2038 100%);
+  background:
+    radial-gradient(circle at 13% 18%, rgba(75, 171, 181, .2), transparent 21%),
+    linear-gradient(108deg, #0b1d2c 0%, #123345 36%, #f4f7f8 36%, #f4f7f8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -195,37 +197,57 @@ async function handleRegister() {
 }
 
 .auth-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px 40px 32px;
+  margin-left: 26%;
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid #d9e3e7;
+  border-radius: 6px;
+  padding: 38px 42px 32px;
   width: 100%;
-  max-width: 560px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 620px;
+  box-shadow: 0 24px 70px rgba(8, 30, 45, .16);
 }
 
 .auth-logo {
-  text-align: center;
+  position: relative;
   margin-bottom: 32px;
+  padding-left: 58px;
+  .auth-mark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    color: #167487;
+    border: 1px solid #8aa3ae;
+    border-radius: 50%;
+    font: 700 11px/1 ui-monospace, monospace;
+  }
+  .eyebrow { color: #167487; font: 700 9px/1 ui-monospace, monospace; letter-spacing: .18em; }
   h1 {
-    font-size: 20px;
-    font-weight: 700;
-    color: #303133;
-    margin: 12px 0 6px;
+    color: #102238;
+    font: 650 27px/1.2 "Bahnschrift", "Noto Sans SC", sans-serif;
+    margin: 9px 0 7px;
   }
   p {
     font-size: 13px;
-    color: #909399;
+    color: #748894;
   }
 }
 
 .auth-form {
   :deep(.el-form-item__label) {
-    font-weight: 500;
-    color: #606266;
-    padding-bottom: 4px;
+    color: #354d5d;
+    font-size: 12px;
+    font-weight: 650;
+    padding-bottom: 7px;
   }
   :deep(.el-input__wrapper) {
-    border-radius: 8px;
+    min-height: 43px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #d5e0e4 inset;
+    &:focus-within { box-shadow: 0 0 0 1px #167487 inset, 0 0 0 4px rgba(22, 116, 135, .08); }
   }
 }
 
@@ -233,14 +255,25 @@ async function handleRegister() {
   width: 100%;
   height: 44px;
   font-size: 15px;
-  border-radius: 8px;
+  border-radius: 4px;
   margin-top: 4px;
 }
 
 .auth-footer {
   text-align: center;
   font-size: 13px;
-  color: #909399;
+  color: #748894;
   margin-top: 12px;
+}
+
+@media (max-width: 820px) {
+  .auth-page { background: #f4f7f8; padding: 18px; }
+  .auth-card { margin-left: 0; padding: 30px 24px 26px; }
+}
+
+@media (max-width: 560px) {
+  .auth-logo { padding-left: 0; padding-top: 56px; }
+  .auth-logo .auth-mark { top: 0; }
+  :deep(.el-col) { max-width: 100%; flex: 0 0 100%; }
 }
 </style>
