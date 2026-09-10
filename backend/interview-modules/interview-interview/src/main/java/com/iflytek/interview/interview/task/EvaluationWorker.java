@@ -35,6 +35,9 @@ public class EvaluationWorker {
         }
 
         TaskLog task = taskLogService.getById(taskId);
+        // 评测耗时是异步化收益的直接依据（同步执行时这部分会叠加到接口响应上），
+        // 也是发现评测退化的第一手信号，因此显式记录。
+        long startedMs = System.currentTimeMillis();
         try {
             String result = reportGenerator.generate(task.getBizId());
             task.setStatus("success");
@@ -42,8 +45,11 @@ public class EvaluationWorker {
             task.setFinishedAt(LocalDateTime.now());
             task.setNextRetryAt(null);
             taskLogService.updateById(task);
+            log.info("评测任务完成: taskId={}, recordId={}, 耗时={}ms",
+                    taskId, task.getBizId(), System.currentTimeMillis() - startedMs);
         } catch (Exception ex) {
-            log.error("AI 评测失败: taskId={}, recordId={}", taskId, task.getBizId(), ex);
+            log.error("AI 评测失败: taskId={}, recordId={}, 耗时={}ms",
+                    taskId, task.getBizId(), System.currentTimeMillis() - startedMs, ex);
             task.setStatus("failed");
             task.setErrorMessage(safeMessage(ex));
             task.setNextRetryAt(LocalDateTime.now().plus(properties.getRetryDelay()));

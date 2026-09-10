@@ -39,3 +39,6 @@ logging:
   level:
     com.iflytek: WARN
     org.springframework: ERROR
+    # 单独放开评测任务的耗时日志：它是异步化收益的直接依据，也是评测退化的第一手信号。
+    # 只开这一个类，避免把 AOP 切面等高频 INFO 日志一并放出来。
+    com.iflytek.interview.interview.task.EvaluationWorker: INFO
