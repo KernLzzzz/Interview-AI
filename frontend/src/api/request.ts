@@ -43,6 +43,23 @@ http.interceptors.response.use(
         window.location.href = '/login'
       }
     }
+    // 代理层错误（nginx 413/502/504）的响应体是 HTML，取不到统一返回体的 message，
+    // 若直接落到最后的兜底，用户只能看到「网络错误」这种无法定位的提示。
+    // 这里按状态码给出可读原因，避免把「文件太大」「服务重启」都混成一句话。
+    if (!message) {
+      if (error.code === 'ECONNABORTED') {
+        return Promise.reject(new Error('请求超时，请检查网络后重试'))
+      }
+      if (status === 413) {
+        return Promise.reject(new Error('上传内容超出服务端限制，请缩短时长或降低画质后重试'))
+      }
+      if (status === 502 || status === 503 || status === 504) {
+        return Promise.reject(new Error('服务暂时不可用，请稍后重试'))
+      }
+      if (!error.response) {
+        return Promise.reject(new Error('网络连接失败，请检查网络后重试'))
+      }
+    }
     return Promise.reject(new Error(message || '网络错误，请稍后重试'))
   }
 )

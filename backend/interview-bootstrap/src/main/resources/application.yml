@@ -5,8 +5,10 @@ spring:
     active: dev
   servlet:
     multipart:
-      max-file-size: 150MB
-      max-request-size: 160MB
+      # 面试录制在提交时一次性上传；前端已限码率（15 分钟约 112MB），此处留足余量。
+      # 注意三者需保持 前端预检 <= app.file.max-size <= 此处 <= nginx client_max_body_size
+      max-file-size: 200MB
+      max-request-size: 210MB
 
 interview:
   cache:
@@ -48,4 +50,4 @@ app:
       - audio/ogg
       - audio/mpeg
       - audio/mp4
-    max-size: 157286400
+    max-size: 209715200

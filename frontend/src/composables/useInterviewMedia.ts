@@ -60,12 +60,21 @@ export function useInterviewMedia() {
     return choices.find(type => MediaRecorder.isTypeSupported(type)) ?? ''
   }
 
+  // 面试上限 15 分钟（900 秒）。浏览器默认码率下 720p 约 2.5Mbps，录满约 280MB，
+  // 会超出后端 150MB 上限——而且失败发生在「结束面试」最后一步，用户白录一整场。
+  // 显式限码率把 15 分钟压到约 112MB（(1M+48k)×900s/8），留足余量。
+  const VIDEO_BITRATE = 1_000_000   // 1Mbps：720p 面试画面足够
+  const AUDIO_BITRATE = 48_000      // 48kbps：语音转写与回看够用
+
   function startRecording(mode: InterviewMode) {
     if (mode === 'text') return
     if (!stream.value) throw new Error('请先完成设备检测')
     chunks.splice(0)
     const mimeType = bestMime(mode)
-    recorder.value = new MediaRecorder(stream.value, mimeType ? { mimeType } : undefined)
+    const bitrate = mode === 'video'
+      ? { videoBitsPerSecond: VIDEO_BITRATE, audioBitsPerSecond: AUDIO_BITRATE }
+      : { audioBitsPerSecond: AUDIO_BITRATE }
+    recorder.value = new MediaRecorder(stream.value, mimeType ? { mimeType, ...bitrate } : bitrate)
     recorder.value.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
     recorder.value.start(1000)
     recording.value = true
