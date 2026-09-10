@@ -61,7 +61,7 @@ public class FileController {
 
         // 4. 上传到 MinIO（读取文件流的受检异常转为业务异常，统一由全局异常处理器兜底）
         try {
-            minioUtil.upload(objectName, file.getInputStream(), file.getContentType());
+            minioUtil.upload(objectName, file.getInputStream(), file.getContentType(), file.getSize());
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.FILE_UPLOAD_FAILED);
         }

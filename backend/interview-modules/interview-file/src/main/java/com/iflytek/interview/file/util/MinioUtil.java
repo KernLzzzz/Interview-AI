@@ -93,13 +93,16 @@ public class MinioUtil {
      * @param inputStream 文件流
      * @param contentType 文件类型，如 application/pdf
      */
-    public void upload(String objectName, InputStream inputStream, String contentType) {
+    public void upload(String objectName, InputStream inputStream, String contentType, long size) {
         try {
             ensureBucket();
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(minioProperties.getBucket())
                     .object(objectName)
-                    .stream(inputStream, -1, PART_SIZE)
+                    // 必须传入已知大小。size=-1（未知长度）时 SDK 会改用 chunked 签名，
+                    // 与新版 MinIO 服务端（RELEASE.2025-09 起）的校验不兼容，
+                    // 会稳定报 SignatureDoesNotMatch —— 上传前文件大小本就已知，没有理由不传。
+                    .stream(inputStream, size, PART_SIZE)
                     .contentType(contentType)
                     .build());
         } catch (Exception e) {
