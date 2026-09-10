@@ -56,6 +56,11 @@ services:
     build: ./backend
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # 必须与 MySQL 一致：否则 JVM 用 UTC 写入 started_at，而 created_at 是
+      # 数据库按 Asia/Shanghai 写入的，两者相差 8 小时。
+      # 前端按「本地时间」解析 startedAt 算倒计时，会被算出负数 → 倒计时直接归零
+      # 并触发「时间到，自动提交」。
+      TZ: Asia/Shanghai
       DB_HOST: mysql
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
