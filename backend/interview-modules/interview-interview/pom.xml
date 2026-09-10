@@ -23,6 +23,11 @@
             <artifactId>interview-question</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.iflytek</groupId>
+            <artifactId>interview-file</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

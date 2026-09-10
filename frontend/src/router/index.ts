@@ -84,7 +84,7 @@ const routes = [
   {
     path: '/records/:id/interview',
     component: () => import('@/views/records/InterviewTake.vue'),
-    meta: { title: '面试作答' }
+    meta: { title: '面试作答', immersive: true }
   },
   {
     path: '/records/:id/report',

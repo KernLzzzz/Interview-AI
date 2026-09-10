@@ -6,10 +6,13 @@ export interface RecordVO {
   id: number
   userId: number
   scenarioId: number
+  interviewMode?: 'text' | 'voice' | 'video'
   questionData?: string   // JSON: [{id, content, difficulty}]
   status: string          // pending/ongoing/completed/cancelled
   score: number | null
   duration?: number       // 秒
+  mediaFileId?: number
+  mediaDuration?: number
   answerData?: string
   aiFeedback?: string
   startedAt?: string
@@ -40,10 +43,13 @@ export function voToRecord(vo: RecordVO, scenarioName: string): InterviewRecord 
     userId: vo.userId,
     scenarioId: vo.scenarioId,
     scenarioName,
+    interviewMode: vo.interviewMode ?? 'text',
     questionData,
     status: STATUS_MAP_TO_ZH[vo.status] ?? '待开始',
     score: vo.score ?? null,
     duration: vo.duration != null ? Math.round(vo.duration / 60) : undefined,
+    mediaFileId: vo.mediaFileId,
+    mediaDuration: vo.mediaDuration,
     answerData: vo.answerData,
     aiFeedback: vo.aiFeedback,
     startedAt: vo.startedAt,
@@ -58,8 +64,8 @@ export function listRecordsApi(): Promise<RecordVO[]> {
 }
 
 /** 创建面试（pending） */
-export function createRecordApi(scenarioId: number): Promise<RecordVO> {
-  return request<RecordVO>({ url: '/records', method: 'POST', data: { scenarioId } })
+export function createRecordApi(scenarioId: number, interviewMode: 'text' | 'voice' | 'video'): Promise<RecordVO> {
+  return request<RecordVO>({ url: '/records', method: 'POST', data: { scenarioId, interviewMode } })
 }
 
 /** 开始面试（pending → ongoing，后端抽题写 questionData） */
@@ -70,9 +76,10 @@ export function startRecordApi(id: number): Promise<RecordVO> {
 /** 提交答案（ongoing → completed，触发异步 AI 评测） */
 export function submitRecordApi(
   id: number,
-  answers: Array<{ questionId: number; answer: string }>
+  answers: Array<{ questionId: number; answer: string }>,
+  media?: { mediaFileId: number; mediaDuration: number }
 ): Promise<EvaluationTask> {
-  return request<EvaluationTask>({ url: `/records/${id}/submit`, method: 'POST', data: { answers } })
+  return request<EvaluationTask>({ url: `/records/${id}/submit`, method: 'POST', data: { answers, ...media } })
 }
 
 export function getLatestEvaluationApi(recordId: number): Promise<EvaluationTask> {

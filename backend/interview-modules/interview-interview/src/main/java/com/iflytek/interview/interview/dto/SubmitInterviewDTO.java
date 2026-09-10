@@ -5,5 +5,8 @@ import jakarta.validation.constraints.NotEmpty;
 
 import java.util.List;
 
-public record SubmitInterviewDTO(@NotEmpty List<@Valid AnswerItemDTO> answers) {
+public record SubmitInterviewDTO(
+        @NotEmpty List<@Valid AnswerItemDTO> answers,
+        Long mediaFileId,
+        Integer mediaDuration) {
 }

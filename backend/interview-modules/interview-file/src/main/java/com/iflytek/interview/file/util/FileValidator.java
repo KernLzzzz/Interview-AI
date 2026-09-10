@@ -28,7 +28,8 @@ public class FileValidator {
         }
         // 2. 类型（白名单；contentType 由浏览器填写，可被伪造，服务端按需再验魔数）
         String contentType = file.getContentType();
-        if (contentType == null || !allowedTypes.contains(contentType)) {
+        String normalizedType = contentType == null ? null : contentType.split(";", 2)[0].trim().toLowerCase();
+        if (normalizedType == null || !allowedTypes.contains(normalizedType)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持的文件类型");
         }
         // 3. 文件名安全（防路径穿越 ../ 等）

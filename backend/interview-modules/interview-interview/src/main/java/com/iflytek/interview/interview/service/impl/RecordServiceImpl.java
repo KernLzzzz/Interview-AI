@@ -17,6 +17,8 @@ import com.iflytek.interview.interview.mapper.InterviewRecordMapper;
 import com.iflytek.interview.interview.service.RecordService;
 import com.iflytek.interview.interview.service.EvaluationTaskService;
 import com.iflytek.interview.interview.vo.EvaluationTaskVO;
+import com.iflytek.interview.file.entity.FileRecord;
+import com.iflytek.interview.file.service.FileRecordService;
 import com.iflytek.interview.question.entity.Question;
 import com.iflytek.interview.question.service.QuestionService;
 import lombok.extern.slf4j.Slf4j;
@@ -44,12 +46,16 @@ public class RecordServiceImpl extends ServiceImpl<InterviewRecordMapper, Interv
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private FileRecordService fileRecordService;
+
     @Override
     @Transactional
-    public InterviewRecord createRecord(Long userId, Long scenarioId) {
+    public InterviewRecord createRecord(Long userId, Long scenarioId, String interviewMode) {
         InterviewRecord record = new InterviewRecord();
         record.setUserId(userId);
         record.setScenarioId(scenarioId);
+        record.setInterviewMode(interviewMode);
         record.setStatus(InterviewStatus.PENDING.getCode());
         baseMapper.insert(record);
         log.info("创建面试: recordId={}, userId={}", record.getId(), userId);
@@ -100,6 +106,7 @@ public class RecordServiceImpl extends ServiceImpl<InterviewRecordMapper, Interv
                         submitted.containsKey(question.id()) ? submitted.get(question.id()).answer() : ""))
                 .toList();
         record.setStatus("completed");
+        bindMedia(record, userId, submission);
         try {
             record.setAnswerData(objectMapper.writeValueAsString(canonicalAnswers));
         } catch (JsonProcessingException ex) {
@@ -112,6 +119,26 @@ public class RecordServiceImpl extends ServiceImpl<InterviewRecordMapper, Interv
         }
         baseMapper.updateById(record);
         return EvaluationTaskVO.from(evaluationTaskService.submit(recordId, null));
+    }
+
+    private void bindMedia(InterviewRecord record, Long userId, SubmitInterviewDTO submission) {
+        if ("text".equals(record.getInterviewMode())) {
+            if (submission.mediaFileId() != null) {
+                throw new BusinessException(400, "文本面试不接受录音或录像文件");
+            }
+            return;
+        }
+        if (submission.mediaFileId() == null) {
+            throw new BusinessException(400, "语音/视频面试需要先上传本场录制文件");
+        }
+        FileRecord media = fileRecordService.getById(submission.mediaFileId());
+        String expectedModule = "video".equals(record.getInterviewMode())
+                ? "interview-video" : "interview-audio";
+        if (media == null || !userId.equals(media.getUserId()) || !expectedModule.equals(media.getModule())) {
+            throw new BusinessException(400, "媒体文件不存在、无权使用或类型不匹配");
+        }
+        record.setMediaFileId(media.getId());
+        record.setMediaDuration(submission.mediaDuration());
     }
 
     @Override

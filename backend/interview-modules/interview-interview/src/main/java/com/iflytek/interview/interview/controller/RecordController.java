@@ -3,6 +3,7 @@ package com.iflytek.interview.interview.controller;
 import com.iflytek.interview.common.response.Result;
 import com.iflytek.interview.common.security.SecurityUtil;
 import com.iflytek.interview.interview.entity.InterviewRecord;
+import com.iflytek.interview.interview.dto.CreateInterviewDTO;
 import com.iflytek.interview.interview.service.RecordService;
 import com.iflytek.interview.interview.dto.SubmitInterviewDTO;
 import com.iflytek.interview.interview.vo.EvaluationTaskVO;
@@ -13,7 +14,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import jakarta.validation.Valid;
 
 @RestController
@@ -28,10 +28,9 @@ public class RecordController {
     @PreAuthorize("hasAuthority('record:create')")
     @PostMapping
     @Operation(summary = "创建面试", description = "按场景创建一条 pending 状态的面试记录")
-    public Result<InterviewRecord> create(@RequestBody Map<String, Long> body) {
+    public Result<InterviewRecord> create(@Valid @RequestBody CreateInterviewDTO body) {
         Long userId = SecurityUtil.getCurrentUserId();
-        Long scenarioId = body.get("scenarioId");
-        return Result.success(recordService.createRecord(userId, scenarioId));
+        return Result.success(recordService.createRecord(userId, body.scenarioId(), body.normalizedMode()));
     }
 
     /** 开始面试 */

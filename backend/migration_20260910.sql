@@ -12,6 +12,10 @@ ALTER TABLE `task_log`
 
 -- 执行前请确保历史列内容均为合法 JSON。
 ALTER TABLE `interview_record`
+    ADD COLUMN `interview_mode` VARCHAR(20) NOT NULL DEFAULT 'text' COMMENT '面试模式：text/voice/video' AFTER `scenario_id`,
+    ADD COLUMN `media_file_id` BIGINT COMMENT '录音/录像文件记录ID' AFTER `duration`,
+    ADD COLUMN `media_duration` INT COMMENT '媒体时长（秒）' AFTER `media_file_id`,
+    ADD INDEX `idx_media_file` (`media_file_id`),
     MODIFY COLUMN `question_data` JSON COMMENT '不含答案的抽题快照',
     MODIFY COLUMN `answer_data` JSON COMMENT '服务端校验并重建的结构化答题数据',
     MODIFY COLUMN `ai_feedback` JSON COMMENT '结构化 AI 评价反馈';

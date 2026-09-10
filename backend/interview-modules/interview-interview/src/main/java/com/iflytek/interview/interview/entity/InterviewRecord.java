@@ -16,11 +16,16 @@ public class InterviewRecord {
     private Long id;
     private Long userId;
     private Long scenarioId;
+    /** text / voice / video，创建后不可变。 */
+    private String interviewMode;
     /** 开始面试时按难度比例抽到的题目快照（JSON：[{id,title,difficulty}]），作答与评分依据 */
     private String questionData;
     private String status;
     private BigDecimal score;
     private Integer duration;
+    /** 语音或视频面试的 MinIO 文件元数据 ID。 */
+    private Long mediaFileId;
+    private Integer mediaDuration;
     private String answerData;
     private String aiFeedback;
     private LocalDateTime startedAt;

@@ -10,7 +10,7 @@ import java.util.List;
 public interface RecordService extends IService<InterviewRecord> {
 
     /** 创建面试记录（pending） */
-    InterviewRecord createRecord(Long userId, Long scenarioId);
+    InterviewRecord createRecord(Long userId, Long scenarioId, String interviewMode);
 
     /** 开始面试：pending → ongoing */
     InterviewRecord startInterview(Long recordId, Long userId);

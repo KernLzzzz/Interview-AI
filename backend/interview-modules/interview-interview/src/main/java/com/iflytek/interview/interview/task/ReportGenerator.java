@@ -67,6 +67,10 @@ public class ReportGenerator {
         feedback.put("summary", buildSummary(items, overall, answers.size(), answered));
         feedback.put("items", items);
         feedback.put("dimensions", buildDimensions(items));
+        feedback.put("modality", Map.of(
+                "mode", record.getInterviewMode() == null ? "text" : record.getInterviewMode(),
+                "mediaAttached", record.getMediaFileId() != null,
+                "mediaDuration", record.getMediaDuration() == null ? 0 : record.getMediaDuration()));
         String feedbackJson = writeJson(feedback);
 
         record.setScore(BigDecimal.valueOf(overall));

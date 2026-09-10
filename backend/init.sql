@@ -69,10 +69,13 @@ CREATE TABLE `interview_record` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID',
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
     `scenario_id` BIGINT NOT NULL COMMENT '场景ID',
+    `interview_mode` VARCHAR(20) NOT NULL DEFAULT 'text' COMMENT '面试模式：text/voice/video',
     `question_data` JSON COMMENT '不含答案的抽题快照',
     `status` VARCHAR(20) DEFAULT 'pending' COMMENT '状态：pending-待开始 ongoing-进行中 completed-已完成 cancelled-已取消',
     `score` DECIMAL(5,2) COMMENT '总分',
     `duration` INT COMMENT '面试时长（秒）',
+    `media_file_id` BIGINT COMMENT '录音/录像文件记录ID',
+    `media_duration` INT COMMENT '媒体时长（秒）',
     `answer_data` JSON COMMENT '服务端校验并重建的结构化答题数据',
     `ai_feedback` JSON COMMENT '结构化 AI 评价反馈',
     `started_at` DATETIME COMMENT '开始时间',
@@ -81,6 +84,7 @@ CREATE TABLE `interview_record` (
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_user (`user_id`),
     INDEX idx_scenario (`scenario_id`),
+    INDEX idx_media_file (`media_file_id`),
     INDEX idx_created (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='面试记录表';
 

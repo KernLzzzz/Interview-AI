@@ -73,6 +73,8 @@
             <el-descriptions-item label="面试状态">
               <el-tag :type="statusTypeMap[record.status]">{{ record.status }}</el-tag>
             </el-descriptions-item>
+            <el-descriptions-item label="面试方式">{{ modeLabel }}</el-descriptions-item>
+            <el-descriptions-item label="媒体记录">{{ record.mediaFileId ? `已归档 · ${record.mediaDuration || 0} 秒` : '无录制文件' }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDateTime(record.createdAt) }}</el-descriptions-item>
             <el-descriptions-item label="完成时间">{{ record.completedAt ? formatDateTime(record.completedAt) : '-' }}</el-descriptions-item>
             <el-descriptions-item label="作答时长">{{ record.duration ? `${record.duration} 分钟` : '-' }}</el-descriptions-item>
@@ -147,6 +149,7 @@ const recordStore = useRecordStore()
 const recordId = Number(route.params.id)
 const record = computed(() => recordStore.getById(recordId))
 const evaluationTask = computed(() => recordStore.evaluationTasks[recordId])
+const modeLabel = computed(() => ({ text: '文本面试', voice: '语音面试', video: '视频面试' })[record.value?.interviewMode ?? 'text'])
 
 const statusTypeMap: Record<string, string> = {
   '待开始': 'info', '进行中': 'warning', '已完成': 'success', '已取消': 'danger'

@@ -163,10 +163,13 @@ export interface InterviewRecord {
   userId: number
   scenarioId: number
   scenarioName?: string         // 展示用，从场景列表解析
+  interviewMode: 'text' | 'voice' | 'video'
   questionData?: AnswerQuestion[]  // 开始面试时抽到的题
   status: '待开始' | '进行中' | '已完成' | '已取消'
   score: number | null          // 0-100，AI 评测完成后才有
   duration?: number             // 时长（分钟）
+  mediaFileId?: number
+  mediaDuration?: number
   answerData?: string           // 提交的答案（JSON 字符串）
   aiFeedback?: string           // AI 评测反馈
   startedAt?: string

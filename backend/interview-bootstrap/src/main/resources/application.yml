@@ -5,8 +5,8 @@ spring:
     active: dev
   servlet:
     multipart:
-      max-file-size: 50MB      # 单个文件最大 50MB（超限直接 413）
-      max-request-size: 100MB  # 单次请求（多文件）最大 100MB
+      max-file-size: 150MB
+      max-request-size: 160MB
 
 interview:
   cache:
@@ -35,4 +35,9 @@ app:
       - image/jpeg
       - image/png
       - video/mp4
-    max-size: 52428800   # 50MB
+      - video/webm
+      - audio/webm
+      - audio/ogg
+      - audio/mpeg
+      - audio/mp4
+    max-size: 157286400

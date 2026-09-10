@@ -46,6 +46,10 @@ public class FileController {
         // 1. 登录用户（文件归属到人）
         Long userId = SecurityUtil.getCurrentUserId();
 
+        if (module == null || !module.matches("[a-z0-9-]{1,40}")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "非法文件模块");
+        }
+
         // 2. 业务层安检：类型白名单 / 大小上限 / 文件名安全
         fileValidator.validate(file);
 
@@ -75,6 +79,6 @@ public class FileController {
         fileRecordService.save(record);
 
         // 6. 返回
-        return Result.success(Map.of("url", url, "originalName", originalName));
+        return Result.success(Map.of("fileId", record.getId(), "url", url, "originalName", originalName));
     }
 }

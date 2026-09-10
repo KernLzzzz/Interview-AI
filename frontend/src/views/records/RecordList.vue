@@ -55,6 +55,12 @@
 
         <el-table-column prop="scenarioName" label="面试场景" min-width="180" show-overflow-tooltip />
 
+        <el-table-column prop="interviewMode" label="方式" width="105" align="center">
+          <template #default="{ row }">
+            <span class="mode-cell"><el-icon><component :is="modeInfo(row.interviewMode).icon" /></el-icon>{{ modeInfo(row.interviewMode).label }}</span>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="statusTypeMap[row.status]" size="small">{{ row.status }}</el-tag>
@@ -182,6 +188,14 @@ const authStore = useAuthStore()
 const canScore = computed(() => authStore.userRole !== '候选人')
 
 const statusOptions = ['待开始', '进行中', '已完成', '已取消']
+const modeMap = {
+  text: { label: '文本', icon: 'EditPen' },
+  voice: { label: '语音', icon: 'Microphone' },
+  video: { label: '视频', icon: 'VideoCamera' }
+} as const
+function modeInfo(mode: unknown) {
+  return mode === 'voice' || mode === 'video' || mode === 'text' ? modeMap[mode] : modeMap.text
+}
 
 const statusTypeMap: Record<string, string> = {
   '待开始': 'info',
@@ -307,6 +321,7 @@ onMounted(async () => {
 .table-card {
   :deep(.el-card__body) { padding: 0; }
 }
+.mode-cell { display: inline-flex; align-items: center; gap: 6px; color: #526c7b; }
 
 .pagination-wrap {
   padding: 14px 16px;

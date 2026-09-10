@@ -46,8 +46,8 @@ export const useRecordStore = defineStore('record', () => {
   }
 
   // 创建面试（返回新记录，用于跳转作答页）
-  async function createRecord(scenarioId: number): Promise<InterviewRecord> {
-    const vo = await createRecordApi(scenarioId)
+  async function createRecord(scenarioId: number, mode: 'text' | 'voice' | 'video' = 'text'): Promise<InterviewRecord> {
+    const vo = await createRecordApi(scenarioId, mode)
     await fetchRecords()
     return voToRecord(vo, scenarioNameOf(vo.scenarioId))
   }
@@ -60,8 +60,12 @@ export const useRecordStore = defineStore('record', () => {
   }
 
   // 提交答案（触发异步 AI 评测）
-  async function submitRecord(id: number, answers: Array<{ questionId: number; answer: string }>) {
-    const task = await submitRecordApi(id, answers)
+  async function submitRecord(
+    id: number,
+    answers: Array<{ questionId: number; answer: string }>,
+    media?: { mediaFileId: number; mediaDuration: number }
+  ) {
+    const task = await submitRecordApi(id, answers, media)
     evaluationTasks.value[id] = task
     await fetchRecords()
     return task

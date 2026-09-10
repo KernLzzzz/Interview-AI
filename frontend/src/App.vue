@@ -2,6 +2,9 @@
   <!-- 未登录：只渲染路由视图（登录/注册页本身有完整布局） -->
   <router-view v-if="!authStore.isLoggedIn" />
 
+  <!-- 面试过程使用全屏面试厅，不显示后台导航框架 -->
+  <router-view v-else-if="route.meta.immersive" />
+
   <!-- 已登录：完整布局 -->
   <el-container v-else class="app-layout">
     <!-- 侧边栏 -->

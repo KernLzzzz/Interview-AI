@@ -1,16 +1,18 @@
 # Interview AI
 
-一套前后端分离的智能模拟面试与结构化评测平台，覆盖候选人、面试官、管理员三类角色。候选人可以选择岗位场景、在线作答并查看逐题反馈；面试官负责复核与人工评分；管理员维护用户、场景、题库和系统数据。
+一套前后端分离的多模态智能模拟面试与结构化评测平台，覆盖候选人、面试官、管理员三类角色。候选人可以通过文本、语音或视频完成模拟面试并查看逐题反馈；面试官负责复核与人工评分；管理员维护用户、场景、题库和系统数据。
 
 ## 核心能力
 
 - **完整面试闭环**：场景选择 → 按 3:5:2 难度比例抽题 → 限时作答 → 异步评测 → 结构化报告。
+- **多模态面试厅**：文本、语音、视频三种面试模式；候场厅完成网络、麦克风、摄像头检测，面试厅提供本地镜像预览、音量反馈、静音/关镜头、题目语音播报和语音转写。
+- **媒体安全归档**：浏览器通过 `MediaRecorder` 采集 WebM/Ogg，结束时上传 MinIO；面试记录只绑定通过用户归属与业务模块校验的文件 ID，并保存媒体时长。
 - **题库缓存优化**：基于 Redis Hash 实现热点题库读取、写后失效、TTL 更新与启动/定时预热；随机抽题从缓存候选集完成，避免高频执行 `ORDER BY RAND()`。
 - **答案安全**：候选人 VO 与管理端 VO 分离，公开接口不包含 `expectedAnswer`、`keywords`；抽题快照由服务端构建并以 JSON 落库，提交答案会按快照题号重新校验和组装。
 - **AI 评测异步化**：`@Async` + 独立线程池将评测从提交接口解耦；支持任务提交、状态查询、结果回调和最多 3 次定时重试。
 - **任务不丢失**：任务先持久化再投递，事务提交后启动工作线程；线程池使用 `CallerRunsPolicy`，避免队列饱和时静默丢弃；同一任务原地重试，保留完整状态轨迹。
 - **认证与权限**：Spring Security + JWT + Redis 会话 + RBAC，并对候选人的面试记录实施行级权限校验。
-- **文件能力**：MinIO 保存简历、头像、视频与附件，包含类型及大小校验。
+- **文件能力**：MinIO 保存简历、头像、面试录音录像与附件，包含类型、大小、文件名及模块路径校验。
 
 ## 技术栈
 
@@ -85,6 +87,8 @@ POST /api/evaluations/callback
 
 回调必须携带 `X-Evaluation-Callback-Token`。本地评测内核会生成 `summary`、`items`、`dimensions` 三部分 JSON，后续替换成远程大模型时可保持接口和前端报告结构不变。
 
+评测结果还包含 `modality` 元数据。内置离线评测器以文本/浏览器转写为评分输入；录音录像已通过文件 ID 纳入任务数据模型，可在不改变提交与状态接口的前提下替换为支持音视频输入的远程多模态模型。
+
 ## 快速启动
 
 ### Docker Compose
@@ -101,6 +105,8 @@ docker compose up --build
 - MinIO 控制台：<http://localhost:9001>
 
 首次启动会自动执行 `backend/init.sql` 和 `backend/rbac.sql`。已有数据库请先备份，再执行 `backend/migration_20260910.sql`。
+
+语音/视频模式需要通过 `localhost` 或 HTTPS 访问，并在浏览器中授予麦克风/摄像头权限。Chrome/Edge 可使用实时语音转写；不支持 Web Speech API 的浏览器仍可正常录制，并允许手工补充回答要点。单场媒体上传上限为 150 MB。
 
 ### 本地开发
 
@@ -162,4 +168,4 @@ npm run build
 
 ## License
 
-This project is provided for learning, evaluation, and secondary development. Add an explicit license before commercial distribution.
+Copyright remains with the repository owner. Add an explicit license before commercial distribution.
