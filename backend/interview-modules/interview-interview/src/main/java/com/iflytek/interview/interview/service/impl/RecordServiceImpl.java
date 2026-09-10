@@ -10,6 +10,7 @@ import com.iflytek.interview.common.security.SecurityUtil;
 import com.iflytek.interview.interview.entity.InterviewRecord;
 import com.iflytek.interview.interview.entity.InterviewStatus;
 import com.iflytek.interview.interview.dto.AnswerItemDTO;
+import com.iflytek.interview.interview.dto.CreateInterviewDTO;
 import com.iflytek.interview.interview.dto.InterviewAnswer;
 import com.iflytek.interview.interview.dto.QuestionSnapshot;
 import com.iflytek.interview.interview.dto.SubmitInterviewDTO;
@@ -51,11 +52,20 @@ public class RecordServiceImpl extends ServiceImpl<InterviewRecordMapper, Interv
 
     @Override
     @Transactional
-    public InterviewRecord createRecord(Long userId, Long scenarioId, String interviewMode) {
+    public InterviewRecord createRecord(Long userId, CreateInterviewDTO request) {
         InterviewRecord record = new InterviewRecord();
         record.setUserId(userId);
-        record.setScenarioId(scenarioId);
-        record.setInterviewMode(interviewMode);
+        record.setScenarioId(request.scenarioId());
+        record.setInterviewMode(request.normalizedMode());
+        try {
+            record.setContextData(objectMapper.writeValueAsString(Map.of(
+                    "targetRole", request.safeTargetRole(),
+                    "jobDescription", request.safeJobDescription(),
+                    "candidateBackground", request.safeCandidateBackground(),
+                    "selectionStrategy", "contextual-keyword-ranking-v1")));
+        } catch (JsonProcessingException ex) {
+            throw new BusinessException(500, "面试上下文序列化失败");
+        }
         record.setStatus(InterviewStatus.PENDING.getCode());
         baseMapper.insert(record);
         log.info("创建面试: recordId={}, userId={}", record.getId(), userId);
@@ -70,7 +80,8 @@ public class RecordServiceImpl extends ServiceImpl<InterviewRecordMapper, Interv
         record.setStatus("ongoing");
         record.setStartedAt(LocalDateTime.now());
         // 开始即抽题：按难度比例 3:5:2 从场景抽 5 道，题目快照存 record（作答与后续评分的依据）
-        List<Question> questions = questionService.getRandomQuestionsByRatio(record.getScenarioId(), 5);
+        List<Question> questions = questionService.getContextualQuestionsByRatio(
+                record.getScenarioId(), 5, record.getContextData());
         if (questions.isEmpty()) {
             throw new BusinessException(400, "当前场景暂无可用题目");
         }

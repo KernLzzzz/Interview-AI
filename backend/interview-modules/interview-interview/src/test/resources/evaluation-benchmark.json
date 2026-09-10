@@ -1,0 +1,23 @@
+[
+  {
+    "name": "complete-technical-answer",
+    "answer": "我会使用 Redis Hash 按场景聚合缓存数据，并设置 TTL 控制过期。写入时主动删除缓存，读取未命中时回源数据库；为了避免缓存击穿，还会增加互斥重建和监控命中率。上线后通过压测对比数据库查询量、P95 延迟与错误率，再根据结果调整过期时间。",
+    "keywords": "Redis,Hash,TTL,缓存",
+    "minScore": 80,
+    "maxScore": 100
+  },
+  {
+    "name": "partial-answer",
+    "answer": "我会先使用 Redis 做缓存，然后结合业务情况设置过期时间，并通过监控观察效果。",
+    "keywords": "Redis,Hash,TTL,缓存击穿",
+    "minScore": 25,
+    "maxScore": 70
+  },
+  {
+    "name": "empty-answer",
+    "answer": "",
+    "keywords": "Redis,Hash,TTL",
+    "minScore": 0,
+    "maxScore": 0
+  }
+]

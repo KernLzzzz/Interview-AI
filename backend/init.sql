@@ -70,6 +70,7 @@ CREATE TABLE `interview_record` (
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
     `scenario_id` BIGINT NOT NULL COMMENT '场景ID',
     `interview_mode` VARCHAR(20) NOT NULL DEFAULT 'text' COMMENT '面试模式：text/voice/video',
+    `context_data` JSON COMMENT '目标岗位、JD与候选人背景快照',
     `question_data` JSON COMMENT '不含答案的抽题快照',
     `status` VARCHAR(20) DEFAULT 'pending' COMMENT '状态：pending-待开始 ongoing-进行中 completed-已完成 cancelled-已取消',
     `score` DECIMAL(5,2) COMMENT '总分',

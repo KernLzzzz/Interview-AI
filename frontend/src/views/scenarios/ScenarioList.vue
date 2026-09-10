@@ -67,6 +67,21 @@
           <span class="permission">{{ item.permission }}</span>
         </button>
       </div>
+      <div class="context-panel">
+        <div class="context-heading">
+          <div><span>岗位定制</span><p>提供的信息越具体，抽题和最终建议越贴近你的目标岗位。</p></div>
+          <el-switch v-model="personalized" active-text="启用" />
+        </div>
+        <el-collapse-transition>
+          <div v-show="personalized" class="context-fields">
+            <el-input v-model="interviewContext.targetRole" maxlength="80" placeholder="目标岗位，例如：Java 后端开发工程师">
+              <template #prepend>目标岗位</template>
+            </el-input>
+            <el-input v-model="interviewContext.jobDescription" type="textarea" :rows="3" maxlength="6000" show-word-limit placeholder="粘贴岗位职责和任职要求，系统会优先抽取相关题目" />
+            <el-input v-model="interviewContext.candidateBackground" type="textarea" :rows="2" maxlength="6000" show-word-limit placeholder="简述项目经历、技术栈或希望重点考察的内容；不要填写身份证号等敏感信息" />
+          </div>
+        </el-collapse-transition>
+      </div>
       <template #footer>
         <div class="dialog-actions">
           <p><i></i> 录音录像仅用于本场模拟面试和评测</p>
@@ -95,6 +110,8 @@ const startingId = ref<number | null>(null)
 const modeDialog = ref(false)
 const selectedScenario = ref<Scenario | null>(null)
 const selectedMode = ref<'text' | 'voice' | 'video'>('video')
+const personalized = ref(true)
+const interviewContext = ref({ targetRole: '', jobDescription: '', candidateBackground: '' })
 const modeOptions = [
   { index: '01', value: 'video' as const, label: '视频面试', icon: 'VideoCamera', description: '模拟远程面试现场，保留完整音视频记录', permission: '摄像头 + 麦克风' },
   { index: '02', value: 'voice' as const, label: '语音面试', icon: 'Microphone', description: '专注表达与逻辑，弱化镜头带来的紧张感', permission: '麦克风' },
@@ -113,6 +130,8 @@ onMounted(async () => {
 function chooseMode(s: Scenario) {
   selectedScenario.value = s
   selectedMode.value = 'video'
+  personalized.value = true
+  interviewContext.value = { targetRole: s.name, jobDescription: s.description || '', candidateBackground: '' }
   modeDialog.value = true
 }
 
@@ -121,7 +140,8 @@ async function startInterview() {
   if (!scenario) return
   startingId.value = scenario.id
   try {
-    const record = await recordStore.createRecord(scenario.id, selectedMode.value)
+    const context = personalized.value ? interviewContext.value : { targetRole: scenario.name, jobDescription: '', candidateBackground: '' }
+    const record = await recordStore.createRecord(scenario.id, selectedMode.value, context)
     modeDialog.value = false
     ElMessage.success(`面试房间已创建，正在进入候场厅`)
     router.push(`/records/${record.id}/interview`)
@@ -200,6 +220,9 @@ async function startInterview() {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
+.context-panel { margin-top: 18px; padding: 16px; background: #f5f8f9; border: 1px solid var(--line); border-radius: 6px; }
+.context-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }.context-heading span { color: var(--ink-950); font-size: 13px; font-weight: 650; }.context-heading p { margin: 4px 0 0; color: var(--slate-600); font-size: 11px; }
+.context-fields { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
 
 .mode-card {
   position: relative;

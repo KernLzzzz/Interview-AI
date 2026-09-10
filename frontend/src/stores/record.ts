@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { InterviewRecord, RecordFilter, Pagination, EvaluationTask } from '@/types'
+import type { InterviewRecord, RecordFilter, Pagination, EvaluationTask, InterviewContext } from '@/types'
 import {
   listRecordsApi,
   createRecordApi,
@@ -46,8 +46,12 @@ export const useRecordStore = defineStore('record', () => {
   }
 
   // 创建面试（返回新记录，用于跳转作答页）
-  async function createRecord(scenarioId: number, mode: 'text' | 'voice' | 'video' = 'text'): Promise<InterviewRecord> {
-    const vo = await createRecordApi(scenarioId, mode)
+  async function createRecord(
+    scenarioId: number,
+    mode: 'text' | 'voice' | 'video' = 'text',
+    context?: Partial<InterviewContext>
+  ): Promise<InterviewRecord> {
+    const vo = await createRecordApi(scenarioId, mode, context)
     await fetchRecords()
     return voToRecord(vo, scenarioNameOf(vo.scenarioId))
   }

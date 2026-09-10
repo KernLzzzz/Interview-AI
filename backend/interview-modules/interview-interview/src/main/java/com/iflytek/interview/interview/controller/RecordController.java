@@ -30,7 +30,7 @@ public class RecordController {
     @Operation(summary = "创建面试", description = "按场景创建一条 pending 状态的面试记录")
     public Result<InterviewRecord> create(@Valid @RequestBody CreateInterviewDTO body) {
         Long userId = SecurityUtil.getCurrentUserId();
-        return Result.success(recordService.createRecord(userId, body.scenarioId(), body.normalizedMode()));
+        return Result.success(recordService.createRecord(userId, body));
     }
 
     /** 开始面试 */

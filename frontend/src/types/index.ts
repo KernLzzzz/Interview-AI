@@ -158,12 +158,20 @@ export interface EvaluationTask {
   finishedAt?: string
 }
 
+export interface InterviewContext {
+  targetRole: string
+  jobDescription: string
+  candidateBackground: string
+  selectionStrategy?: string
+}
+
 export interface InterviewRecord {
   id: number
   userId: number
   scenarioId: number
   scenarioName?: string         // 展示用，从场景列表解析
   interviewMode: 'text' | 'voice' | 'video'
+  interviewContext?: InterviewContext
   questionData?: AnswerQuestion[]  // 开始面试时抽到的题
   status: '待开始' | '进行中' | '已完成' | '已取消'
   score: number | null          // 0-100，AI 评测完成后才有

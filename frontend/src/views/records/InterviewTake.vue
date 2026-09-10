@@ -45,7 +45,7 @@
       <section v-else-if="record.status === '进行中' && questions.length" class="room">
         <header class="topbar room-topbar">
           <div class="brand"><span>IA</span><strong>INTERVIEW ROOM</strong></div>
-          <div class="room-meta"><span>{{ record.scenarioName }}</span><i></i><span>ROOM {{ String(id).padStart(6, '0') }}</span></div>
+          <div class="room-meta"><span>{{ record.interviewContext?.targetRole || record.scenarioName }}</span><i></i><span>ROOM {{ String(id).padStart(6, '0') }}</span></div>
           <div class="room-status"><span></span>{{ mode === 'text' ? '面试进行中' : 'REC' }} <b>{{ elapsedTime }}</b></div>
         </header>
         <main class="room-grid">

@@ -13,6 +13,7 @@ ALTER TABLE `task_log`
 -- 执行前请确保历史列内容均为合法 JSON。
 ALTER TABLE `interview_record`
     ADD COLUMN `interview_mode` VARCHAR(20) NOT NULL DEFAULT 'text' COMMENT '面试模式：text/voice/video' AFTER `scenario_id`,
+    ADD COLUMN `context_data` JSON COMMENT '目标岗位、JD与候选人背景快照' AFTER `interview_mode`,
     ADD COLUMN `media_file_id` BIGINT COMMENT '录音/录像文件记录ID' AFTER `duration`,
     ADD COLUMN `media_duration` INT COMMENT '媒体时长（秒）' AFTER `media_file_id`,
     ADD INDEX `idx_media_file` (`media_file_id`),

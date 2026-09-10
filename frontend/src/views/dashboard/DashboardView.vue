@@ -44,6 +44,14 @@
       </div>
     </div>
 
+    <section class="ai-ops-rail" v-loading="dashboardStore.statsLoading">
+      <div class="ops-intro"><span>AI DELIVERY HEALTH</span><strong>评测服务运行证据</strong><small>最近 {{ dashboardStore.evaluationMetrics.sampleSize }} 个异步任务</small></div>
+      <div class="ops-metric"><small>成功率</small><strong>{{ dashboardStore.evaluationMetrics.successRate }}%</strong><span>{{ dashboardStore.evaluationMetrics.success }} 成功 · {{ dashboardStore.evaluationMetrics.failed }} 失败</span></div>
+      <div class="ops-metric"><small>平均耗时</small><strong>{{ formatLatency(dashboardStore.evaluationMetrics.averageLatencyMs) }}</strong><span>P95 {{ formatLatency(dashboardStore.evaluationMetrics.p95LatencyMs) }}</span></div>
+      <div class="ops-metric"><small>重试率</small><strong>{{ dashboardStore.evaluationMetrics.retryRate }}%</strong><span>{{ dashboardStore.evaluationMetrics.inFlight }} 个任务处理中</span></div>
+      <div class="engine-split"><small>评测引擎</small><div><i class="remote"></i><span>真实 AI {{ dashboardStore.evaluationMetrics.remoteAiTasks }}</span></div><div><i></i><span>离线评测 {{ dashboardStore.evaluationMetrics.localTasks }}</span></div></div>
+    </section>
+
     <!-- 趋势图（近7天：面试数 + 平均分，两张单系列图） -->
     <el-card class="trend-card" shadow="never" v-loading="dashboardStore.statsLoading">
       <template #header>
@@ -418,6 +426,7 @@ function formatRelativeTime(iso: string) {
   if (days < 30) return `${days}天前`
   return new Date(iso).toLocaleDateString('zh-CN')
 }
+function formatLatency(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms` }
 
 function goToRecord(record: any) {
   if (record.status === '已完成') {
@@ -625,6 +634,26 @@ onUnmounted(() => {
         }
       }
     }
+  }
+
+  .ai-ops-rail {
+    display: grid;
+    grid-template-columns: 1.35fr repeat(3, .8fr) 1fr;
+    margin-bottom: 24px;
+    color: #dce9ed;
+    background: #132c3e;
+    border-left: 4px solid #42a8b4;
+    box-shadow: 0 10px 28px rgba(16,34,56,.12);
+    > div { min-height: 92px; display: flex; flex-direction: column; justify-content: center; padding: 16px 20px; border-right: 1px solid rgba(255,255,255,.1); }
+    > div:last-child { border-right: 0; }
+    small { color: #7896a6; font: 600 9px/1.4 ui-monospace, monospace; letter-spacing: .1em; }
+    .ops-intro span { color: #68bcc5; font: 700 9px/1 ui-monospace, monospace; letter-spacing: .18em; }
+    .ops-intro strong { margin: 8px 0 5px; font-size: 15px; }
+    .ops-metric strong { margin: 7px 0 4px; font: 650 23px/1 ui-monospace, monospace; color: #fff; }
+    .ops-metric span, .engine-split span { color: #8fa6b3; font-size: 10px; }
+    .engine-split { gap: 7px; }.engine-split div { display: flex; align-items: center; gap: 7px; }.engine-split i { width: 7px; height: 7px; border-radius: 50%; background: #8ca0aa; }.engine-split i.remote { background: #4fc1a2; box-shadow: 0 0 0 4px rgba(79,193,162,.1); }
+    @media (max-width: 1100px) { grid-template-columns: repeat(2, 1fr); > div { border-bottom: 1px solid rgba(255,255,255,.1); } }
+    @media (max-width: 620px) { grid-template-columns: 1fr; }
   }
 
   // ── 趋势图卡片 ───────────────────────────────────────────

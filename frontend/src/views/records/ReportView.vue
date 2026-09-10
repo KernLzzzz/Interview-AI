@@ -70,6 +70,7 @@
           <template #header><span class="section-title">📋 基本信息</span></template>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="面试场景">{{ record.scenarioName || `场景${record.scenarioId}` }}</el-descriptions-item>
+            <el-descriptions-item label="目标岗位">{{ record.interviewContext?.targetRole || record.scenarioName || '-' }}</el-descriptions-item>
             <el-descriptions-item label="面试状态">
               <el-tag :type="statusTypeMap[record.status]">{{ record.status }}</el-tag>
             </el-descriptions-item>

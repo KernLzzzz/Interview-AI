@@ -7,6 +7,7 @@ import com.iflytek.interview.question.mapper.QuestionMapper;
 import com.iflytek.interview.question.service.QuestionService;
 import lombok.extern.slf4j.Slf4j;
 import com.iflytek.interview.question.service.QuestionBankCacheService;
+import com.iflytek.interview.question.service.ContextualQuestionRanker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,9 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Autowired
     private QuestionBankCacheService questionBankCache;
+
+    @Autowired
+    private ContextualQuestionRanker contextualQuestionRanker;
 
     /** 题目列表：命中缓存直接返回；key 带筛选参数（scenarioId/difficulty），null 也参与拼 key */
     @Override
@@ -74,6 +78,19 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
      */
     @Override
     public List<Question> getRandomQuestionsByRatio(Long scenarioId, int count) {
+        return selectByRatio(new ArrayList<>(listQuestions(scenarioId, null)), count, false);
+    }
+
+    @Override
+    public List<Question> getContextualQuestionsByRatio(Long scenarioId, int count, String context) {
+        if (!org.springframework.util.StringUtils.hasText(context)) {
+            return getRandomQuestionsByRatio(scenarioId, count);
+        }
+        List<Question> ranked = contextualQuestionRanker.rank(listQuestions(scenarioId, null), context);
+        return selectByRatio(new ArrayList<>(ranked), count, true);
+    }
+
+    private List<Question> selectByRatio(List<Question> bank, int count, boolean preserveRanking) {
         if (count <= 0) {
             return Collections.emptyList();
         }
@@ -83,34 +100,33 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         int hard = count - easy - medium;   // 余数全部给困难，保证总数等于 count
 
         // 随机抽题只读取一个 Hash field；冷启动也只回源一次数据库。
-        List<Question> bank = new ArrayList<>(listQuestions(scenarioId, null));
         List<Question> result = new ArrayList<>();
-        result.addAll(randomByDifficulty(bank, 1, easy));
-        result.addAll(randomByDifficulty(bank, 2, medium));
-        result.addAll(randomByDifficulty(bank, 3, hard));
+        result.addAll(byDifficulty(bank, 1, easy, preserveRanking));
+        result.addAll(byDifficulty(bank, 2, medium, preserveRanking));
+        result.addAll(byDifficulty(bank, 3, hard, preserveRanking));
 
         // 某难度题不足时，用该场景其他题补齐缺口（排除已抽中的）
         if (result.size() < count) {
             List<Long> selectedIds = result.stream().map(Question::getId).toList();
             List<Question> rest = new ArrayList<>(bank.stream()
                     .filter(q -> !selectedIds.contains(q.getId())).toList());
-            Collections.shuffle(rest);
+            if (!preserveRanking) Collections.shuffle(rest);
             rest = rest.subList(0, Math.min(count - result.size(), rest.size()));
             result.addAll(rest);
         }
 
-        Collections.shuffle(result);   // 打乱：不让候选人看出难度分布
+        Collections.shuffle(result);   // 只打乱展示顺序，不改变已选题集合
         return result;
     }
 
     /** 抽指定难度的 limit 道题（随机排序） */
-    private List<Question> randomByDifficulty(List<Question> bank, int difficulty, int limit) {
+    private List<Question> byDifficulty(List<Question> bank, int difficulty, int limit, boolean preserveRanking) {
         if (limit <= 0) {
             return Collections.emptyList();
         }
         List<Question> candidates = new ArrayList<>(bank.stream()
                 .filter(question -> question.getDifficulty() == difficulty).toList());
-        Collections.shuffle(candidates);
+        if (!preserveRanking) Collections.shuffle(candidates);
         return candidates.subList(0, Math.min(limit, candidates.size()));
     }
 

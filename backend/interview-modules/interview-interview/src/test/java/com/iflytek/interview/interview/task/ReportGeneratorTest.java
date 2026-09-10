@@ -36,7 +36,7 @@ class ReportGeneratorTest {
         ReportGenerator generator = new ReportGenerator(recordMapper, questionMapper, new ObjectMapper(), gateway);
         String report = generator.generate(9L);
 
-        assertThat(report).contains("summary", "dimensions", "candidateProfile", "recommendations", "matchedKeywords");
+        assertThat(report).contains("\"score\":50", "summary", "dimensions", "candidateProfile", "recommendations", "matchedKeywords");
         ArgumentCaptor<InterviewRecord> captor = ArgumentCaptor.forClass(InterviewRecord.class);
         verify(recordMapper).updateById(captor.capture());
         assertThat(captor.getValue().getScore()).isNotNull();

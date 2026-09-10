@@ -72,10 +72,11 @@ public class ReportGenerator {
         Map<String, Object> feedback = new LinkedHashMap<>();
         feedback.put("version", "2.0");
         feedback.put("engine", "local-explainable");
+        feedback.put("score", overall);
         feedback.put("summary", buildSummary(items, overall, answers.size(), answered));
         feedback.put("items", items);
         feedback.put("dimensions", buildDimensions(items));
-        feedback.put("candidateProfile", buildCandidateProfile(overall, answered, answers.size()));
+        feedback.put("candidateProfile", buildCandidateProfile(overall, answered, answers.size(), record));
         feedback.put("riskSignals", buildRiskSignals(items, answered, answers.size()));
         feedback.put("recommendations", buildRecommendations(overall));
         feedback.put("modality", Map.of(
@@ -170,7 +171,7 @@ public class ReportGenerator {
         return dimensions;
     }
 
-    private Map<String, Object> buildCandidateProfile(int overall, long answered, int total) {
+    private Map<String, Object> buildCandidateProfile(int overall, long answered, int total, InterviewRecord record) {
         Map<String, Object> profile = new LinkedHashMap<>();
         profile.put("strengths", overall >= 70
                 ? List.of("能够覆盖多数问题的核心要点", "具备一定的结构化表达意识")
@@ -180,9 +181,20 @@ public class ReportGenerator {
                 : List.of("回答深度和关键知识点覆盖不足", "需要用具体案例证明能力"));
         profile.put("seniorityEstimate", overall >= 85 ? "高级能力表现" : overall >= 65 ? "中级能力表现" : "基础能力表现");
         profile.put("workStyle", overall >= 70 ? "偏结构化分析，建议加强结果量化" : "当前证据有限，需要在完整案例中进一步观察");
-        profile.put("jobFit", String.format("基于本次模拟面试完成度 %d/%d，当前岗位匹配度为%s。",
-                answered, total, overall >= 80 ? "较高" : overall >= 60 ? "中等" : "待提升"));
+        String targetRole = extractTargetRole(record);
+        profile.put("jobFit", String.format("基于本次模拟面试完成度 %d/%d，与%s的当前匹配度为%s。",
+                answered, total, targetRole, overall >= 80 ? "较高" : overall >= 60 ? "中等" : "待提升"));
         return profile;
+    }
+
+    private String extractTargetRole(InterviewRecord record) {
+        if (!StringUtils.hasText(record.getContextData())) return "目标岗位";
+        try {
+            String value = objectMapper.readTree(record.getContextData()).path("targetRole").asText();
+            return StringUtils.hasText(value) ? value : "目标岗位";
+        } catch (Exception ignored) {
+            return "目标岗位";
+        }
     }
 
     private List<String> buildRiskSignals(List<Map<String, Object>> items, long answered, int total) {

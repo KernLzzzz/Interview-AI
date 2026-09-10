@@ -13,6 +13,8 @@ import com.iflytek.interview.interview.mapper.InterviewRecordMapper;
 import com.iflytek.interview.interview.service.EvaluationTaskService;
 import com.iflytek.interview.interview.service.TaskLogService;
 import com.iflytek.interview.interview.task.EvaluationWorker;
+import com.iflytek.interview.interview.task.EvaluationMetricsCalculator;
+import com.iflytek.interview.interview.vo.EvaluationMetricsVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -34,6 +36,7 @@ public class EvaluationTaskServiceImpl implements EvaluationTaskService {
     private final EvaluationWorker evaluationWorker;
     private final EvaluationProperties properties;
     private final ObjectMapper objectMapper;
+    private final EvaluationMetricsCalculator metricsCalculator;
 
     @Override
     @Transactional
@@ -174,6 +177,15 @@ public class EvaluationTaskServiceImpl implements EvaluationTaskService {
             dispatchAfterCommit(task.getId());
         }
         return claimed;
+    }
+
+    @Override
+    public EvaluationMetricsVO metrics() {
+        List<TaskLog> sample = taskLogService.list(new LambdaQueryWrapper<TaskLog>()
+                .eq(TaskLog::getTaskType, "ai_evaluation")
+                .orderByDesc(TaskLog::getId)
+                .last("LIMIT 1000"));
+        return metricsCalculator.calculate(sample);
     }
 
     private void dispatchAfterCommit(Long taskId) {

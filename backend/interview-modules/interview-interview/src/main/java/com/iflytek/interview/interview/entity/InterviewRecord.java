@@ -18,6 +18,8 @@ public class InterviewRecord {
     private Long scenarioId;
     /** text / voice / video，创建后不可变。 */
     private String interviewMode;
+    /** 目标岗位、JD 与候选人背景的服务端结构化快照。 */
+    private String contextData;
     /** 开始面试时按难度比例抽到的题目快照（JSON：[{id,title,difficulty}]），作答与评分依据 */
     private String questionData;
     private String status;

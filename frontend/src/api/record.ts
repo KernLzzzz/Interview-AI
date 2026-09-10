@@ -1,5 +1,5 @@
 import { request } from './request'
-import type { InterviewRecord, AnswerQuestion, EvaluationTask } from '@/types'
+import type { InterviewRecord, AnswerQuestion, EvaluationTask, InterviewContext } from '@/types'
 
 /** 后端 InterviewRecord 原始结构 */
 export interface RecordVO {
@@ -7,6 +7,7 @@ export interface RecordVO {
   userId: number
   scenarioId: number
   interviewMode?: 'text' | 'voice' | 'video'
+  contextData?: string
   questionData?: string   // JSON: [{id, content, difficulty}]
   status: string          // pending/ongoing/completed/cancelled
   score: number | null
@@ -31,6 +32,7 @@ const STATUS_MAP_TO_ZH: Record<string, InterviewRecord['status']> = {
 /** 后端 RecordVO → 前端 InterviewRecord（scenarioName 由调用方传入） */
 export function voToRecord(vo: RecordVO, scenarioName: string): InterviewRecord {
   let questionData: AnswerQuestion[] | undefined
+  let interviewContext: InterviewContext | undefined
   if (vo.questionData) {
     try {
       questionData = JSON.parse(vo.questionData)
@@ -38,12 +40,16 @@ export function voToRecord(vo: RecordVO, scenarioName: string): InterviewRecord 
       questionData = []
     }
   }
+  if (vo.contextData) {
+    try { interviewContext = JSON.parse(vo.contextData) as InterviewContext } catch { interviewContext = undefined }
+  }
   return {
     id: vo.id,
     userId: vo.userId,
     scenarioId: vo.scenarioId,
     scenarioName,
     interviewMode: vo.interviewMode ?? 'text',
+    interviewContext,
     questionData,
     status: STATUS_MAP_TO_ZH[vo.status] ?? '待开始',
     score: vo.score ?? null,
@@ -64,8 +70,12 @@ export function listRecordsApi(): Promise<RecordVO[]> {
 }
 
 /** 创建面试（pending） */
-export function createRecordApi(scenarioId: number, interviewMode: 'text' | 'voice' | 'video'): Promise<RecordVO> {
-  return request<RecordVO>({ url: '/records', method: 'POST', data: { scenarioId, interviewMode } })
+export function createRecordApi(
+  scenarioId: number,
+  interviewMode: 'text' | 'voice' | 'video',
+  context?: Partial<InterviewContext>
+): Promise<RecordVO> {
+  return request<RecordVO>({ url: '/records', method: 'POST', data: { scenarioId, interviewMode, ...context } })
 }
 
 /** 开始面试（pending → ongoing，后端抽题写 questionData） */
@@ -82,12 +92,29 @@ export function submitRecordApi(
   return request<EvaluationTask>({ url: `/records/${id}/submit`, method: 'POST', data: { answers, ...media } })
 }
 
+export interface EvaluationMetrics {
+  sampleSize: number
+  success: number
+  failed: number
+  inFlight: number
+  successRate: number
+  averageLatencyMs: number
+  p95LatencyMs: number
+  retryRate: number
+  remoteAiTasks: number
+  localTasks: number
+}
+
 export function getLatestEvaluationApi(recordId: number): Promise<EvaluationTask> {
   return request<EvaluationTask>({ url: `/evaluations/records/${recordId}/latest`, method: 'GET' })
 }
 
 export function getEvaluationApi(taskId: number): Promise<EvaluationTask> {
   return request<EvaluationTask>({ url: `/evaluations/${taskId}`, method: 'GET' })
+}
+
+export function getEvaluationMetricsApi(): Promise<EvaluationMetrics> {
+  return request<EvaluationMetrics>({ url: '/evaluations/metrics', method: 'GET' })
 }
 
 /** 取消面试（pending → cancelled） */

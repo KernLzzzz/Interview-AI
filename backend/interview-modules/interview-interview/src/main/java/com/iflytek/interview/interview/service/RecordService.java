@@ -3,6 +3,7 @@ package com.iflytek.interview.interview.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.iflytek.interview.interview.entity.InterviewRecord;
 import com.iflytek.interview.interview.dto.SubmitInterviewDTO;
+import com.iflytek.interview.interview.dto.CreateInterviewDTO;
 import com.iflytek.interview.interview.vo.EvaluationTaskVO;
 
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.List;
 public interface RecordService extends IService<InterviewRecord> {
 
     /** 创建面试记录（pending） */
-    InterviewRecord createRecord(Long userId, Long scenarioId, String interviewMode);
+    InterviewRecord createRecord(Long userId, CreateInterviewDTO request);
 
     /** 开始面试：pending → ongoing */
     InterviewRecord startInterview(Long recordId, Long userId);

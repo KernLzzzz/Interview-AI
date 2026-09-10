@@ -124,11 +124,14 @@ public class RemoteAiEvaluationGateway {
                 item.put("keywords", question == null ? "" : question.getKeywords());
                 return item;
             }).toList();
-            return objectMapper.writeValueAsString(Map.of(
-                    "scenarioId", record.getScenarioId(),
-                    "interviewMode", record.getInterviewMode() == null ? "text" : record.getInterviewMode(),
-                    "durationSeconds", record.getDuration() == null ? 0 : record.getDuration(),
-                    "answers", answerData));
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("scenarioId", record.getScenarioId());
+            payload.put("interviewMode", record.getInterviewMode() == null ? "text" : record.getInterviewMode());
+            payload.put("durationSeconds", record.getDuration() == null ? 0 : record.getDuration());
+            payload.put("jobContext", StringUtils.hasText(record.getContextData())
+                    ? objectMapper.readTree(record.getContextData()) : Map.of());
+            payload.put("answers", answerData);
+            return objectMapper.writeValueAsString(payload);
         } catch (Exception ex) {
             throw new IllegalStateException("构建 AI 评测输入失败", ex);
         }

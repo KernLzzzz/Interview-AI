@@ -25,6 +25,9 @@ public interface QuestionService extends IService<Question> {
     /** 按难度比例 3:5:2（简单:中等:困难）随机抽 count 道题，最后打乱顺序 */
     List<Question> getRandomQuestionsByRatio(Long scenarioId, int count);
 
+    /** 按难度配额并结合 JD/候选人背景进行相关性排序；无上下文时回退随机抽题。 */
+    List<Question> getContextualQuestionsByRatio(Long scenarioId, int count, String context);
+
     /** 预热全局列表与前 limit 个热点场景，返回预热场景数。 */
     int warmupHotQuestionBanks(int limit);
 }

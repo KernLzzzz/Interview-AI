@@ -11,6 +11,7 @@ import com.iflytek.interview.interview.entity.TaskLog;
 import com.iflytek.interview.interview.service.EvaluationTaskService;
 import com.iflytek.interview.interview.service.RecordService;
 import com.iflytek.interview.interview.vo.EvaluationTaskVO;
+import com.iflytek.interview.interview.vo.EvaluationMetricsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -55,6 +56,13 @@ public class EvaluationController {
             throw new BusinessException(ErrorCode.EVALUATION_TASK_NOT_FOUND);
         }
         return Result.success(EvaluationTaskVO.from(task));
+    }
+
+    @PreAuthorize("hasAnyRole('admin', 'interviewer')")
+    @GetMapping("/metrics")
+    @Operation(summary = "AI 评测运行指标", description = "最近 1000 个任务的成功率、延迟、重试率与引擎分布")
+    public Result<EvaluationMetricsVO> metrics() {
+        return Result.success(evaluationTaskService.metrics());
     }
 
     @PostMapping("/callback")

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { TodoItem } from '@/types'
 import { getStatsApi, type StatsOverview } from '@/api/stats'
 import { listScenariosApi, type Scenario } from '@/api/scenario'
+import { getEvaluationMetricsApi, type EvaluationMetrics } from '@/api/record'
 import todosData from '@/mock/todos.json'
 
 function mockDelay(ms = 400) {
@@ -28,6 +29,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     trend: [], recent: []
   })
   const scenarios = ref<Scenario[]>([])
+  const evaluationMetrics = ref<EvaluationMetrics>({ sampleSize: 0, success: 0, failed: 0, inFlight: 0, successRate: 0, averageLatencyMs: 0, p95LatencyMs: 0, retryRate: 0, remoteAiTasks: 0, localTasks: 0 })
 
   // ===================== 最近面试记录（真实，带场景名） =====================
   const recentRecords = computed(() =>
@@ -62,9 +64,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
   async function fetchStats() {
     statsLoading.value = true
     try {
-      const [s, sc] = await Promise.all([getStatsApi(), listScenariosApi()])
+      const [s, sc, metrics] = await Promise.all([getStatsApi(), listScenariosApi(), getEvaluationMetricsApi()])
       stats.value = s
       scenarios.value = sc
+      evaluationMetrics.value = metrics
     } finally {
       statsLoading.value = false
     }
@@ -114,6 +117,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     loading,
     statsLoading,
     stats,
+    evaluationMetrics,
     recentRecords,
     pendingTodos,
     completedTodos,
