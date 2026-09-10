@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: interview-ai
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB      # 单个文件最大 50MB（超限直接 413）
+      max-request-size: 100MB  # 单次请求（多文件）最大 100MB
+
+interview:
+  cache:
+    question:
+      key-prefix: interview:question-bank:scenario
+      ttl: PT30M
+      refresh-interval: PT20M
+      warmup-enabled: true
+      warmup-limit: 20
+  evaluation:
+    max-retries: 3
+    retry-delay: PT1M
+    callback-token: ${AI_CALLBACK_TOKEN:local-development-token}
+
+
+app:
+  name: 多模态智能模拟面试评测平台
+  version: 1.0.0
+  description: 基于AI的面试模拟与评测系统
+  author: Interview AI Team
+  file:
+    allowed-types:
+      - application/pdf
+      - application/msword
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - image/jpeg
+      - image/png
+      - video/mp4
+    max-size: 52428800   # 50MB

@@ -1,0 +1,2 @@
+token,recordId,questionId,answer
+replace-with-candidate-jwt,101,1,"Redis Hash 可以按场景聚合多个难度维度，并统一设置 TTL。"

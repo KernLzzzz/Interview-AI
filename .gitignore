@@ -1,0 +1,5 @@
+.env
+performance/results/
+backend/**/target/
+frontend/node_modules/
+frontend/dist/

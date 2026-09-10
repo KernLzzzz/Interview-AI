@@ -1,68 +1,165 @@
-# interview-AI 多模态智能模拟面试评测平台
+# Interview AI
 
-基于 AI 的面试模拟与评测系统,覆盖**管理员 / 面试官 / 候选人**三类角色。前后端分分支托管,`main` 仅作项目总览。
+一套前后端分离的智能模拟面试与结构化评测平台，覆盖候选人、面试官、管理员三类角色。候选人可以选择岗位场景、在线作答并查看逐题反馈；面试官负责复核与人工评分；管理员维护用户、场景、题库和系统数据。
 
-## 分支结构
+## 核心能力
 
-| 分支 | 内容 | 技术栈 |
-| --- | --- | --- |
-| `main` | 项目总览(本文档) | — |
-| `interview-AI/backend` | 后端 | Java 17 · Spring Boot 3.5 · MyBatis-Plus · MySQL · Redis · MinIO · Spring Security · JWT · knife4j/springdoc |
-| `interview-AI/frontend` | 前端 | Vue 3 · Vite · TypeScript · Element Plus · Pinia · ECharts · axios |
+- **完整面试闭环**：场景选择 → 按 3:5:2 难度比例抽题 → 限时作答 → 异步评测 → 结构化报告。
+- **题库缓存优化**：基于 Redis Hash 实现热点题库读取、写后失效、TTL 更新与启动/定时预热；随机抽题从缓存候选集完成，避免高频执行 `ORDER BY RAND()`。
+- **答案安全**：候选人 VO 与管理端 VO 分离，公开接口不包含 `expectedAnswer`、`keywords`；抽题快照由服务端构建并以 JSON 落库，提交答案会按快照题号重新校验和组装。
+- **AI 评测异步化**：`@Async` + 独立线程池将评测从提交接口解耦；支持任务提交、状态查询、结果回调和最多 3 次定时重试。
+- **任务不丢失**：任务先持久化再投递，事务提交后启动工作线程；线程池使用 `CallerRunsPolicy`，避免队列饱和时静默丢弃；同一任务原地重试，保留完整状态轨迹。
+- **认证与权限**：Spring Security + JWT + Redis 会话 + RBAC，并对候选人的面试记录实施行级权限校验。
+- **文件能力**：MinIO 保存简历、头像、视频与附件，包含类型及大小校验。
 
-## 功能概览
+## 技术栈
 
-- **认证与权限**:JWT(sessionId)+ Redis 会话,登出即时失效;RBAC(admin/interviewer/candidate)+ 接口级权限注解 + 数据权限
-- **题库模块**:题目增删改查、按 3:5:2 难度比例随机抽题,列表返回 VO 屏蔽 `expectedAnswer/keywords`
-- **面试流程**:场景管理 → 创建面试(pending)→ start(ongoing)→ submit(异步评测评分 + AI 反馈)→ cancel;重复 start/submit 有状态机校验
-- **报告生成**:`ReportGenerator` 解析作答数据启发式打分,幂等写 `score/aiFeedback`
-- **用户中心**:改资料 / 改密码 / 我的记录;管理员分页、分配角色,改密/改角色后删会话
-- **文件上传**:MinIO 存储 + 类型/大小校验
-- **定时任务**:每日 8 点面试提醒(`interview-job`)
-- **API 文档**:knife4j,启动后访问 `http://localhost:8080/doc.html`
+| 端 | 技术 |
+| --- | --- |
+| Web | Vue 3、TypeScript、Vite、Element Plus、Pinia、ECharts |
+| API | Java 17、Spring Boot 3.5、Spring Security、MyBatis-Plus |
+| 数据 | MySQL 8、Redis 7、MinIO |
+| 工程 | Maven、Docker Compose、JMeter 5.6、OpenAPI / Knife4j |
 
-## 后端运行(`interview-AI/backend`)
+## 项目结构
 
-### 环境依赖
-JDK 17 · Maven · MySQL 8 · Redis;文件上传另需 MinIO。
-
-### 步骤
-1. 建库 `interview_ai`,按顺序执行根目录 SQL:`init.sql` → `rbac.sql` → `increment_20260831.sql`
-2. 启动本地 MySQL(3306)、Redis(6379);文件上传需 MinIO(9000,bucket `interviewai`)
-3. 按需修改 `interview-bootstrap/src/main/resources/application-dev.yml`(数据源/Redis/MinIO/JWT)
-4. 启动入口模块:
-   ```bash
-   cd interview-bootstrap
-   ../mvnw spring-boot:run
-   ```
-5. 接口文档:http://localhost:8080/doc.html
-
-### 种子账号
-| 角色 | 账号 | 密码 |
-| --- | --- | --- |
-| 管理员 | `admin` | `admin123` |
-| 面试官 | `interviewer` | `interview123` |
-| 候选人 | `cand01` | `abc123` |
-
-> ⚠️ `init.sql` 里的 `test01/123456` 是明文,启动时 `DataInitializer` 只收敛了 admin/interviewer,**test01 登录会 401**,请改用 `cand01`。
-
-## 前端运行(`interview-AI/frontend`)
-
-```bash
-npm install
-npm run dev   # http://localhost:5173
+```text
+.
+├─ backend/                 Spring Boot 多模块后端
+│  ├─ interview-bootstrap/ 启动与环境配置
+│  ├─ interview-common/    安全、Redis、异步线程池、统一响应
+│  └─ interview-modules/   system / question / interview / file / job
+├─ frontend/                Vue 3 单页应用
+├─ performance/             题库缓存与异步提交 JMeter 测试计划
+├─ compose.yaml             MySQL、Redis、MinIO、前后端编排
+└─ .env.example             容器环境变量模板
 ```
 
-- 开发代理已配:`/api` → `http://localhost:8080`,无跨域问题
-- 登录已接后端真实接口(JWT 存 localStorage,401 自动回登录页)
+## 关键设计
 
-## 待办 / 已知缺口
+### Redis Hash 题库缓存
 
-- [ ] 前端 `src/stores/config.ts`、`src/stores/dashboard.ts` 仍走本地 mock(`src/mock/`),需对接真实接口
-- [ ] 后端 `test01` 种子账号密码未收敛为 BCrypt(见上方种子账号警告)
-- [ ] 前端根目录 `vite.config.js` / `vite.config.d.ts` 是 `tsc` 生成物,已加入 `.gitignore`;本机残留会遮蔽 `vite.config.ts`(Vite 优先加载 `.js`),建议删除
-- [ ] `application-dev.yml` 含本地明文密码与占位 JWT secret,仅限开发;生产请用环境变量(`application-prod.yml` 已留注释模板)
-- [ ] 前端未提供 `.env`,代理目标写死在 `vite.config.ts`(localhost:8080),部署时需调整
+Key 遵循“业务域:模块:维度”规范：
 
-## 说明
-课程阶段作业项目。
+```text
+interview:question-bank:scenario:{scenarioId}
+└─ Hash fields
+   ├─ difficulty:all
+   ├─ difficulty:1
+   ├─ difficulty:2
+   └─ difficulty:3
+```
+
+每个场景的全部难度维度共享一个过期边界。新增、修改、删除题目后同时失效场景 Key 与全局 Key；应用启动后预热前 20 个热点场景，并在默认 30 分钟 TTL 到期前每 20 分钟主动更新。Redis 异常时自动回源 MySQL，不影响主业务可用性。
+
+管理员可调用：
+
+```http
+GET  /api/questions/cache/stats
+POST /api/questions/cache/warmup?limit=20
+```
+
+### 异步 AI 评测
+
+```text
+提交答案
+   │  同一事务写 interview_record + task_log(pending)
+   ▼
+事务提交后投递 ──► aiEvaluationExecutor ──► 评测内核/外部模型
+                           │                         │
+                           │ 失败                    │ 成功/回调
+                           ▼                         ▼
+                    failed + nextRetryAt       score + JSON report
+                           │
+                           └── 每 5 分钟扫描，最多重试 3 次
+```
+
+任务接口：
+
+```http
+POST /api/evaluations
+GET  /api/evaluations/{taskId}
+GET  /api/evaluations/records/{recordId}/latest
+POST /api/evaluations/callback
+```
+
+回调必须携带 `X-Evaluation-Callback-Token`。本地评测内核会生成 `summary`、`items`、`dimensions` 三部分 JSON，后续替换成远程大模型时可保持接口和前端报告结构不变。
+
+## 快速启动
+
+### Docker Compose
+
+```bash
+cp .env.example .env
+# 修改 .env 中的密码、JWT 密钥与回调令牌
+docker compose up --build
+```
+
+- Web：<http://localhost:5173>
+- API：<http://localhost:8080>
+- API 文档：<http://localhost:8080/doc.html>
+- MinIO 控制台：<http://localhost:9001>
+
+首次启动会自动执行 `backend/init.sql` 和 `backend/rbac.sql`。已有数据库请先备份，再执行 `backend/migration_20260910.sql`。
+
+### 本地开发
+
+依赖 Java 17、Node.js 22+、MySQL 8、Redis 7；文件上传功能另需 MinIO。
+
+```bash
+# 后端
+cd backend
+./mvnw spring-boot:run -pl interview-bootstrap -am
+
+# 前端（另一个终端）
+cd frontend
+npm ci
+npm run dev
+```
+
+Windows 可将 `./mvnw` 替换为 `mvnw.cmd`。Vite 会把 `/api` 代理到 `http://localhost:8080`。
+
+### 初始账号
+
+初始化脚本中的三个账号密码均为 `123456`：
+
+| 用户名 | 角色 |
+| --- | --- |
+| `admin` | 管理员 |
+| `interviewer` | 面试官 |
+| `test01` | 候选人 |
+
+公开部署前必须修改初始密码以及 `.env` 中的全部密钥。
+
+## 验证与压测
+
+```bash
+# 后端单元测试
+cd backend
+./mvnw test
+
+# 前端类型检查与生产构建
+cd frontend
+npm run build
+```
+
+`performance/` 提供两套非 GUI JMeter 测试计划及数据模板。题库混合读压测以数据库查询量下降约 50% 或更多为验收线；异步提交以平均响应时间提升约 40% 或更多、`task_log` 无任务缺口为验收线。具体命令、SQL/APM 计数口径和报告留存要求见 [performance/README.md](performance/README.md)。
+
+性能百分比与硬件、题库分布、缓存命中率及模型耗时有关，应在目标部署环境重新执行测试并保存 JTL 与 HTML 报告。
+
+## 配置说明
+
+| 配置 | 默认值 | 说明 |
+| --- | --- | --- |
+| `interview.cache.question.ttl` | `PT30M` | 题库 Hash TTL |
+| `interview.cache.question.refresh-interval` | `PT20M` | 热点题库刷新周期 |
+| `interview.cache.question.warmup-limit` | `20` | 自动预热场景数 |
+| `interview.evaluation.max-retries` | `3` | 失败任务最大重试次数 |
+| `interview.evaluation.retry-delay` | `PT1M` | 单次失败后的最小等待时间 |
+| `AI_CALLBACK_TOKEN` | 无安全默认值 | 外部评测回调令牌，生产环境必须配置 |
+
+生产环境通过 `application-prod.yml` 读取数据库、Redis、JWT 与 MinIO 环境变量。不要提交真实密码、访问密钥或压测 JWT。
+
+## License
+
+This project is provided for learning, evaluation, and secondary development. Add an explicit license before commercial distribution.

@@ -1,0 +1,48 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/interview_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:123456}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: 2s
+
+mybatis-plus:
+  configuration:
+    # 开启驼峰命名映射：数据库字段 created_at → Java属性 createdAt
+    map-underscore-to-camel-case: true
+    # 打印SQL日志（开发环境开启，生产环境关闭）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 主键策略：自增
+      id-type: auto
+  # Mapper XML 文件位置（如果有手写SQL）
+  mapper-locations: classpath:mapper/**/*.xml
+  # 实体类包路径（用于类型别名）
+  type-aliases-package: com.iflytek.interview.*.entity
+
+logging:
+  level:
+    com.iflytek: DEBUG
+    org.springframework: INFO
+
+# JWT 配置（顶层，与 logging 平级）
+jwt:
+  secret: ${JWT_SECRET:interview-ai-jwt-secret-key-2026-local-only}
+  expiration: 86400000   # 单位毫秒 = 24 小时
+
+# MinIO 配置（顶层，供 MinioProperties 读取；此前误缩进在 jwt 下导致启动报 endpoint must not be null）
+minio:
+  endpoint: http://localhost:9000
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: interviewai
